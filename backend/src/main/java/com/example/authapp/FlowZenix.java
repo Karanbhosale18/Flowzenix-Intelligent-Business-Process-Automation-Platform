@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AuthAppApplication {
+public class FlowZenix {
     public static void main(String[] args) {
-        SpringApplication.run(AuthAppApplication.class, args);
+        SpringApplication.run(FlowZenix.class, args);
     }
 }
