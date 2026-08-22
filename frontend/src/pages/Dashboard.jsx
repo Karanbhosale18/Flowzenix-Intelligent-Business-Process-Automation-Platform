@@ -1,31 +1,80 @@
-import { useNavigate } from 'react-router-dom'
-import AuthService from '../services/AuthService.js'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import AppShell from '../components/AppShell.jsx'
+import RequestService from '../services/RequestService.js'
+import TaskService from '../services/TaskService.js'
+import { statusInfo, formatDate } from '../utils/status.js'
 import './Dashboard.css'
 
 export default function Dashboard() {
-  const navigate = useNavigate()
-  const user = AuthService.getCurrentUser()
+  const [requests, setRequests] = useState(null)
+  const [tasks, setTasks] = useState(null)
 
-  function handleLogout() {
-    AuthService.logout()
-    navigate('/login')
-  }
+  useEffect(() => {
+    RequestService.listMine().then(setRequests).catch(() => setRequests([]))
+    TaskService.listMine().then(setTasks).catch(() => setTasks([]))
+  }, [])
+
+  const pending = requests?.filter((r) => r.status.startsWith('PENDING') || r.status === 'SUBMITTED').length ?? '—'
+  const approved = requests?.filter((r) => r.status === 'APPROVED' || r.status === 'COMPLETED').length ?? '—'
+  const rejected = requests?.filter((r) => r.status === 'REJECTED').length ?? '—'
+  const myApprovals = tasks?.length ?? '—'
 
   return (
-    <div className="dash-shell">
-      <div className="dash-card">
-        <div className="dash-dot" />
-        <h1>You're signed in</h1>
-        <p className="dash-user">
-          {user?.username} · {user?.email}
-        </p>
-        <p className="dash-roles">Roles: {user?.roles?.join(', ') || 'ROLE_USER'}</p>
-        <p className="dash-note">
-          This page is only reachable with a valid JWT — remove or replace it with your
-          real approval-queue UI once the workflow modules are built.
-        </p>
-        <button className="dash-logout" onClick={handleLogout}>Sign out</button>
+    <AppShell
+      title="Dashboard"
+      actions={<Link to="/requests/new" className="btn btn-primary">New request</Link>}
+    >
+      <div className="stats-grid">
+        <StatCard label="My pending requests" value={pending} />
+        <StatCard label="Approved" value={approved} />
+        <StatCard label="Rejected" value={rejected} />
+        <StatCard label="Awaiting my approval" value={myApprovals} accent />
       </div>
+
+      <div className="dash-columns">
+        <section className="card dash-section">
+          <div className="dash-section-header">
+            <p className="section-title">Recent requests</p>
+            <Link to="/requests" className="dash-section-link">View all</Link>
+          </div>
+          {requests === null && <p className="empty-state">Loading…</p>}
+          {requests && requests.length === 0 && <p className="empty-state">No requests yet.</p>}
+          {requests && requests.slice(0, 5).map((r) => {
+            const s = statusInfo(r.status)
+            return (
+              <Link to={`/requests/${r.requestId}`} className="dash-row" key={r.requestId}>
+                <span className="dash-row-title">{r.title}</span>
+                <span className={`badge ${s.className}`}>{s.label}</span>
+              </Link>
+            )
+          })}
+        </section>
+
+        <section className="card dash-section">
+          <div className="dash-section-header">
+            <p className="section-title">Waiting on you</p>
+            <Link to="/approvals" className="dash-section-link">View all</Link>
+          </div>
+          {tasks === null && <p className="empty-state">Loading…</p>}
+          {tasks && tasks.length === 0 && <p className="empty-state">Nothing pending.</p>}
+          {tasks && tasks.slice(0, 5).map((t) => (
+            <Link to={`/requests/${t.requestId}`} className="dash-row" key={t.taskId}>
+              <span className="dash-row-title">{t.requestTitle}</span>
+              <span className="dash-row-sub">{formatDate(t.createdAt)}</span>
+            </Link>
+          ))}
+        </section>
+      </div>
+    </AppShell>
+  )
+}
+
+function StatCard({ label, value, accent }) {
+  return (
+    <div className={`card stat-card ${accent ? 'stat-card--accent' : ''}`}>
+      <p className="stat-value">{value}</p>
+      <p className="stat-label">{label}</p>
     </div>
   )
 }

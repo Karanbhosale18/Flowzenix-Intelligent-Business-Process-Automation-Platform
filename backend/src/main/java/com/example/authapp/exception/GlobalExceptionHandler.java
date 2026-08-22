@@ -2,6 +2,7 @@ package com.example.authapp.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +21,20 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = baseBody(HttpStatus.UNAUTHORIZED);
         body.put("message", "Invalid username or password.");
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(WorkflowException.class)
+    public ResponseEntity<Object> handleWorkflow(WorkflowException ex) {
+        Map<String, Object> body = baseBody(HttpStatus.UNPROCESSABLE_ENTITY);
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
+        Map<String, Object> body = baseBody(HttpStatus.FORBIDDEN);
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

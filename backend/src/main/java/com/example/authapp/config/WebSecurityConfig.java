@@ -101,8 +101,12 @@ public class WebSecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 // role-scoped example endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                // everything else requires a valid JWT
+                .requestMatchers("/api/finance/**").hasAnyRole("FINANCE", "ADMIN")
+                .requestMatchers("/api/hr/**").hasAnyRole("HR", "ADMIN")
+                // /api/requests/** and /api/tasks/** are open to any
+                // authenticated user — ownership/assignment is checked in
+                // the service layer, since who can act on a task depends
+                // on runtime assignment, not a fixed route rule.
                 .anyRequest().authenticated()
             );
 

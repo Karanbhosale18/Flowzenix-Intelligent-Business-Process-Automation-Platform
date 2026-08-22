@@ -50,6 +50,17 @@ public class User {
 
     private boolean enabled = true;
 
+    @Size(max = 100)
+    private String department;
+
+    /**
+     * References users.id of this person's reporting manager. Plain scalar
+     * column rather than a mapped @ManyToOne — the workflow engine only
+     * ever needs to look the manager up by id, and this avoids a
+     * self-referencing entity relationship for a single use case.
+     */
+    private Long managerId;
+
     public User() {
     }
 
@@ -111,5 +122,21 @@ public class User {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public Long getManagerId() {
+        return managerId;
+    }
+
+    public void setManagerId(Long managerId) {
+        this.managerId = managerId;
     }
 }

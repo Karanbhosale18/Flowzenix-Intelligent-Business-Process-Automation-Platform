@@ -1,68 +1,50 @@
-.dash-shell {
-  min-height: 100vh;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-card { padding: 20px; }
+.stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 600; margin: 0; }
+.stat-label { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
+.stat-card--accent .stat-value { color: var(--accent); }
+
+.dash-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 800px) {
+  .dash-columns { grid-template-columns: 1fr 1fr; }
+}
+
+.dash-section-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  padding: 24px;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
-.dash-card {
-  max-width: 420px;
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 36px;
-}
-
-.dash-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 5px var(--accent-soft);
-  margin-bottom: 18px;
-}
-
-.dash-card h1 {
-  font-family: var(--font-display);
-  font-size: 22px;
-  margin: 0 0 10px;
-}
-
-.dash-user {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0 0 4px;
-}
-
-.dash-roles {
-  font-family: var(--font-mono);
-  font-size: 13px;
+.dash-section-link {
+  font-size: 12.5px;
   color: var(--accent);
-  margin: 0 0 20px;
+  text-decoration: none;
+  font-weight: 600;
 }
 
-.dash-note {
-  font-size: 13.5px;
-  color: var(--text-muted);
-  line-height: 1.6;
-  margin: 0 0 24px;
+.dash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  text-decoration: none;
+  color: inherit;
 }
 
-.dash-logout {
-  padding: 10px 18px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  font-size: 13.5px;
-  cursor: pointer;
-}
+.dash-row:last-child { border-bottom: none; }
 
-.dash-logout:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.dash-row-title { font-size: 13.5px; color: var(--text); }
+.dash-row-sub { font-size: 12px; color: var(--text-faint); }

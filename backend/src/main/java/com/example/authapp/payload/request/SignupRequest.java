@@ -21,10 +21,17 @@ public class SignupRequest {
     @Size(min = 8, max = 120)
     private String password;
 
-    // Optional: allows requesting "admin" at signup time for demo purposes.
+    // Optional: allows requesting a role at signup time for demo purposes.
     // In production this should be locked down / removed and roles should be
     // assigned by an existing admin instead of the signup form itself.
     private Set<String> role;
+
+    // Optional: department name, e.g. "Engineering", "Marketing".
+    private String department;
+
+    // Optional: id of this person's reporting manager (another user's id).
+    // Required for LEAVE_REQUEST-style workflows that route to "the employee's manager".
+    private Long managerId;
 
     public String getUsername() {
         return username;
@@ -56,5 +63,21 @@ public class SignupRequest {
 
     public void setRole(Set<String> role) {
         this.role = role;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public Long getManagerId() {
+        return managerId;
+    }
+
+    public void setManagerId(Long managerId) {
+        this.managerId = managerId;
     }
 }

@@ -61,18 +61,23 @@ public class AuthController {
         Set<ERole> roles = new HashSet<>();
 
         if (requestedRoles == null || requestedRoles.isEmpty()) {
-            roles.add(ERole.ROLE_USER);
+            roles.add(ERole.ROLE_EMPLOYEE);
         } else {
             requestedRoles.forEach(role -> {
-                if ("admin".equalsIgnoreCase(role)) {
-                    roles.add(ERole.ROLE_ADMIN);
-                } else {
-                    roles.add(ERole.ROLE_USER);
+                switch (role.toLowerCase()) {
+                    case "admin" -> roles.add(ERole.ROLE_ADMIN);
+                    case "manager" -> roles.add(ERole.ROLE_MANAGER);
+                    case "finance" -> roles.add(ERole.ROLE_FINANCE);
+                    case "hr" -> roles.add(ERole.ROLE_HR);
+                    case "it_admin", "it-admin", "itadmin" -> roles.add(ERole.ROLE_IT_ADMIN);
+                    default -> roles.add(ERole.ROLE_EMPLOYEE);
                 }
             });
         }
 
         user.setRoles(roles);
+        user.setDepartment(signUpRequest.getDepartment());
+        user.setManagerId(signUpRequest.getManagerId());
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));

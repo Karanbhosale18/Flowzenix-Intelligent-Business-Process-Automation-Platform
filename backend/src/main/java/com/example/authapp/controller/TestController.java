@@ -18,11 +18,6 @@ public class TestController {
         return "pong (no auth required)";
     }
 
-    @GetMapping("/user/profile")
-    public String userProfile() {
-        return "This is a USER or ADMIN protected endpoint.";
-    }
-
     @GetMapping("/admin/dashboard")
     public String adminDashboard() {
         return "This is an ADMIN-only protected endpoint.";
