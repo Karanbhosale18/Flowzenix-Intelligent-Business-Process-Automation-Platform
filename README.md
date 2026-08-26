@@ -85,6 +85,13 @@ backend/src/main/java/com/example/authapp/
     ├── WebSecurityConfig.java      (role rules updated for new ERole set)
     └── WorkflowSeeder.java         (new — seeds the two demo workflows)
 
+backend/src/test/java/com/example/authapp/
+├── workflow/engine/
+│   └── WorkflowEngineTest.java     (engine transitions: start/approve/reject/info/cancel/end-to-end)
+└── service/
+    ├── RequestServiceTest.java     (request type validation, cancel + view authorization)
+    └── TaskServiceTest.java        (approval-inbox ownership guard + decision routing)
+
 frontend/src/
 ├── utils/status.js                 (new — status badges, request-type field defs)
 ├── components/AppShell.jsx/.css    (new — sidebar layout used by all authed pages)
@@ -92,6 +99,7 @@ frontend/src/
 ├── services/TaskService.js         (new)
 └── pages/
     ├── Dashboard.jsx/.css          (rewritten — real stats + quick links)
+    ├── Signup.jsx                  (+ optional role / department / manager-ID fields)
     ├── NewRequest.jsx/.css         (new)
     ├── MyRequests.jsx/.css         (new)
     ├── RequestDetail.jsx/.css      (new)
@@ -135,6 +143,7 @@ existing `user_roles` rows from `ROLE_USER` to `ROLE_EMPLOYEE`.
 | POST | `/api/requests` | Any authenticated user | Body: `CreateRequestDTO`. Starts a workflow instance. |
 | GET | `/api/requests` | Any authenticated user | Own requests; all requests if caller is `ADMIN`. |
 | GET | `/api/requests/{id}` | Owner, assigned approver, or `ADMIN` | Full detail incl. timeline. 403 otherwise. |
+| POST | `/api/requests/{id}/cancel` | Owner or `ADMIN` | Withdraws an in-flight request; closes its open task. `403` if you're neither owner nor admin, `422` if it's already approved/rejected/cancelled. |
 | GET | `/api/tasks/my` | Any authenticated user | Pending tasks assigned to the caller. |
 | POST | `/api/tasks/{id}/approve` | Assignee or `ADMIN` | Body (optional): `{ "comment": "..." }` |
 | POST | `/api/tasks/{id}/reject` | Assignee or `ADMIN` | Same body shape. |
@@ -194,6 +203,11 @@ exists yet), `403` for access-denied, `400` for validation failures.
    `history` array and `steps` timeline.
 6. Try submitting a request with an employee who has no `managerId` set —
    you should get a `422` with a clear message instead of a stack trace.
+7. **Cancel a request**: as `karan` (the owner) call
+   `POST /api/requests/{id}/cancel` on a request that is still pending — it
+   moves to `CANCELLED` and its open task disappears from the manager's
+   inbox. Calling cancel again (now that it's terminal) returns `422`;
+   calling it as an unrelated user returns `403`.
 
 ## 7. How the frontend connects to it
 
@@ -213,6 +227,36 @@ exists yet), `403` for access-denied, `400` for validation failures.
 - All of these render inside the new `AppShell` component (sidebar nav +
   logout), which every authenticated page after login now uses instead of
   the bare Phase 1 dashboard shell.
+- `Signup.jsx` now collects an optional **role**, **department**, and
+  **manager's user ID** alongside the Phase 1 username/email/password. This
+  is what lets you stand up a manager, a finance user, and an employee whose
+  `managerId` points at that manager entirely from the UI — no `curl` needed
+  to seed the routing targets the engine depends on. Leaving the fields
+  blank keeps the Phase 1 behaviour (a plain `EMPLOYEE` with no manager).
+
+## 8. Automated tests
+
+Module 1 ships with a focused unit-test suite. The tests are pure
+JUnit 5 + Mockito — **no Spring context and no database**, so they run in
+milliseconds with `mvn test` and don't need Postgres up or the JSONB
+mapping that H2 can't emulate. Every collaborator (repositories, and the
+engine when testing the services) is mocked, so each test pins one
+behaviour.
+
+| Test class | What it guards |
+|---|---|
+| `WorkflowEngineTest` | The engine's transitions: `start()` routes a leave request to the employee's manager and rejects a manager-less employee or an empty definition; approving the only step completes as `APPROVED`; approving step 1 of a budget request advances to Finance; rejecting ends the workflow; requesting info parks it; an already-resolved task can't be decided again (**prevents duplicate approval**); `cancel()` closes the open task and refuses terminal instances. A full **end-to-end** test drives a budget request submit → manager → finance → `APPROVED` and asserts the six history entries. |
+| `RequestServiceTest` | Request-type validation (a valid type starts the workflow; an unknown type is refused before anything is created), cancel authorization (owner and admin may, a stranger gets `403`, a missing request is a clean error), the detail view + history timeline, and "view own" vs. admin "view all". |
+| `TaskServiceTest` | The approval-inbox ownership guard (assignee or admin may act, anyone else gets `403` and the engine is never touched), the not-found path, that approve/reject/request-info route the correct `ApprovalDecision` to the engine, and the inbox row mapping. |
+
+These map directly onto the Module 1 test checklist — leave workflow,
+budget workflow, approval, rejection, unauthorized access, invalid request,
+and end-to-end — at the unit level. Run them from the backend module:
+
+```bash
+cd backend
+mvn test
+```
 
 ## What's intentionally out of scope for this module
 

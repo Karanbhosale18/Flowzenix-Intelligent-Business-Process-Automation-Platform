@@ -142,6 +142,52 @@ public class WorkflowEngine {
         }
     }
 
+    /**
+     * Cancels a still-running workflow instance on behalf of the requester.
+     * Unlike decide(), cancellation is initiated by the request's owner
+     * (that ownership check lives in RequestService), not by the current
+     * task's assignee. A workflow that has already reached a terminal state
+     * cannot be cancelled — attempting to do so is a workflow error, not a
+     * silent no-op, so the caller gets a clear 422 rather than a misleading
+     * "success". Keeping this here (rather than mutating the instance from a
+     * service) preserves the invariant that WorkflowInstance.status only
+     * ever changes inside the engine, so workflow_history stays a complete
+     * record of every transition.
+     */
+    @Transactional
+    public void cancel(WorkflowInstance instance, User actor) {
+        WorkflowStatus previousStatus = instance.getStatus();
+        if (isTerminal(previousStatus)) {
+            throw new WorkflowException(
+                    "Cannot cancel a request that is already " + previousStatus + ".");
+        }
+
+        // Close out the open task (if any) so it drops off its assignee's
+        // pending-approvals inbox. There is at most one PENDING task per
+        // instance in this single-step-at-a-time engine.
+        workflowTaskRepository.findByWorkflowInstanceAndStatus(instance, TaskStatus.PENDING)
+                .ifPresent(task -> {
+                    task.setStatus(TaskStatus.CANCELLED);
+                    task.setCompletedAt(Instant.now());
+                    workflowTaskRepository.save(task);
+                });
+
+        instance.setStatus(WorkflowStatus.CANCELLED);
+        instance.setCompletedAt(Instant.now());
+        instance.touch();
+        workflowInstanceRepository.save(instance);
+
+        recordHistory(instance, "Request cancelled", actor, previousStatus, WorkflowStatus.CANCELLED, null);
+    }
+
+    /** A terminal instance can no longer be advanced, decided on, or cancelled. */
+    private boolean isTerminal(WorkflowStatus status) {
+        return status == WorkflowStatus.APPROVED
+                || status == WorkflowStatus.REJECTED
+                || status == WorkflowStatus.CANCELLED
+                || status == WorkflowStatus.COMPLETED;
+    }
+
     /** Creates the WorkflowTask for `step`, resolves its assignee, and updates instance status/position. */
     private void advanceToStep(WorkflowInstance instance, WorkflowStep step, User actor) {
         User assignee = resolveAssignee(instance, step);

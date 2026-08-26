@@ -8,7 +8,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function Signup() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' })
+  const [form, setForm] = useState({
+    username: '', email: '', password: '', confirmPassword: '',
+    role: '', department: '', managerId: '',
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
@@ -28,6 +31,9 @@ export default function Signup() {
 
     if (form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match.'
 
+    if (form.managerId.trim() && !/^[1-9]\d*$/.test(form.managerId.trim()))
+      next.managerId = 'Enter a valid manager user ID (a positive number).'
+
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -45,7 +51,14 @@ export default function Signup() {
 
     setLoading(true)
     try {
-      await AuthService.signup(form.username.trim(), form.email.trim(), form.password)
+      await AuthService.signup({
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        role: form.role,
+        department: form.department,
+        managerId: form.managerId,
+      })
       setSuccess(true)
       setTimeout(() => navigate('/login'), 1200)
     } catch (err) {
@@ -147,6 +160,65 @@ export default function Signup() {
             aria-invalid={!!errors.confirmPassword}
           />
           {errors.confirmPassword && <p className="field-error">{errors.confirmPassword}</p>}
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="role">
+            Role <span className="field-optional">(optional)</span>
+          </label>
+          <select
+            id="role"
+            name="role"
+            className="field-input"
+            value={form.role}
+            onChange={handleChange}
+          >
+            <option value="">Employee (default)</option>
+            <option value="manager">Manager</option>
+            <option value="finance">Finance</option>
+            <option value="hr">HR</option>
+            <option value="it_admin">IT Admin</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="department">
+            Department <span className="field-optional">(optional)</span>
+          </label>
+          <input
+            id="department"
+            name="department"
+            type="text"
+            className="field-input"
+            placeholder="e.g. Engineering"
+            value={form.department}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="managerId">
+            Manager's user ID <span className="field-optional">(optional)</span>
+          </label>
+          <input
+            id="managerId"
+            name="managerId"
+            type="number"
+            min="1"
+            className="field-input"
+            placeholder="e.g. 1"
+            value={form.managerId}
+            onChange={handleChange}
+            aria-invalid={!!errors.managerId}
+          />
+          {errors.managerId ? (
+            <p className="field-error">{errors.managerId}</p>
+          ) : (
+            <p className="field-hint">
+              Employees need this so leave &amp; budget requests route to their manager for approval.
+            </p>
+          )}
         </div>
 
         <button type="submit" className="submit-btn" disabled={loading}>

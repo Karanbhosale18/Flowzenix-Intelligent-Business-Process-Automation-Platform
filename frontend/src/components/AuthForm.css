@@ -47,6 +47,11 @@
   color: var(--text-faint);
 }
 
+.field-optional {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
 .submit-btn {
   width: 100%;
   padding: 12px 16px;

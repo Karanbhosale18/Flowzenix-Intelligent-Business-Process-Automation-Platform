@@ -52,6 +52,28 @@ public class RequestService {
         return toSummary(request, instance);
     }
 
+    /**
+     * Cancels a request the caller owns (or any request, if the caller is an
+     * ADMIN). Authorization is decided here; the actual state transition is
+     * delegated to the engine so WorkflowInstance.status is mutated in only
+     * one place. A non-owner, non-admin caller gets a 403; trying to cancel
+     * an already-finished request surfaces as a 422 from the engine.
+     */
+    @Transactional
+    public void cancelRequest(Long requestId, User currentUser) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new WorkflowException("Request " + requestId + " not found."));
+        WorkflowInstance instance = request.getWorkflowInstance();
+
+        boolean isOwner = instance.getCreatedBy().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRoles().contains(ERole.ROLE_ADMIN);
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("You can only cancel your own requests.");
+        }
+
+        workflowEngine.cancel(instance, currentUser);
+    }
+
     public List<RequestSummaryDTO> listRequestsFor(User user) {
         boolean isAdmin = user.getRoles().contains(ERole.ROLE_ADMIN);
         List<WorkflowInstance> instances = isAdmin
