@@ -186,15 +186,23 @@ export default function Signup() {
           <label className="field-label" htmlFor="department">
             Department <span className="field-optional">(optional)</span>
           </label>
-          <input
+          <select
             id="department"
             name="department"
-            type="text"
             className="field-input"
-            placeholder="e.g. Engineering"
             value={form.department}
             onChange={handleChange}
-          />
+          >
+            <option value="">Select a department</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Finance">Finance</option>
+            <option value="Human Resources">Human Resources</option>
+            <option value="Sales">Sales</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Operations">Operations</option>
+            <option value="IT">IT</option>
+            <option value="Legal">Legal</option>
+          </select>
         </div>
 
         <div className="field">
