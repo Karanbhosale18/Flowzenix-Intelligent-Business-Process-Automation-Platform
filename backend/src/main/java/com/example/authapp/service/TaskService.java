@@ -14,10 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * The "my approvals inbox" side of things: list pending tasks for the
- * current user, and let them act on one. Ownership of the *decision* is
- * checked here (is this really your task?) before WorkflowEngine is asked
- * to run the actual state transition.
+ * The "my approvals inbox" side of things: list tasks for the current user
+ * (pending, or a history of ones they've already decided), and let them act
+ * on a pending one. Ownership of the *decision* is checked here (is this
+ * really your task?) before WorkflowEngine is asked to run the actual state
+ * transition.
  */
 @Service
 public class TaskService {
@@ -26,23 +27,44 @@ public class TaskService {
     @Autowired private RequestRepository requestRepository;
     @Autowired private WorkflowEngine workflowEngine;
 
+    /** The pending-approvals inbox — unchanged behaviour for existing callers. */
     public List<TaskSummaryDTO> listMyTasks(User user) {
         return workflowTaskRepository.findByAssignedToAndStatusOrderByCreatedAtDesc(user, TaskStatus.PENDING).stream()
-                .map(task -> {
-                    WorkflowInstance instance = task.getWorkflowInstance();
-                    Request request = requestRepository.findByWorkflowInstance(instance).orElse(null);
-                    return new TaskSummaryDTO(
-                            task.getId(),
-                            request != null ? request.getId() : null,
-                            instance.getId(),
-                            request != null ? request.getTitle() : "(request not found)",
-                            request != null ? request.getRequestType() : null,
-                            task.getStep().getName(),
-                            instance.getCreatedBy().getUsername(),
-                            task.getCreatedAt()
-                    );
-                })
+                .map(this::toSummary)
                 .toList();
+    }
+
+    /**
+     * Tasks assigned to `user` matching any of `statuses` — e.g. Approved,
+     * Rejected, or a combination — so a manager can review requests they've
+     * already decided on, not just what's still pending. An empty/null
+     * filter falls back to the pending inbox.
+     */
+    public List<TaskSummaryDTO> listMyTasks(User user, List<TaskStatus> statuses) {
+        if (statuses == null || statuses.isEmpty()) {
+            return listMyTasks(user);
+        }
+        return workflowTaskRepository.findByAssignedToAndStatusInOrderByCreatedAtDesc(user, statuses).stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    private TaskSummaryDTO toSummary(WorkflowTask task) {
+        WorkflowInstance instance = task.getWorkflowInstance();
+        Request request = requestRepository.findByWorkflowInstance(instance).orElse(null);
+        return new TaskSummaryDTO(
+                task.getId(),
+                request != null ? request.getId() : null,
+                instance.getId(),
+                request != null ? request.getTitle() : "(request not found)",
+                request != null ? request.getRequestType() : null,
+                task.getStep().getName(),
+                instance.getCreatedBy().getUsername(),
+                task.getCreatedAt(),
+                task.getStatus(),
+                task.getComment(),
+                task.getCompletedAt()
+        );
     }
 
     @Transactional

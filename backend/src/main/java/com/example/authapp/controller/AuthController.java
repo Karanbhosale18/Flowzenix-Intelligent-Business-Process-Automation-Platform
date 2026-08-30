@@ -95,6 +95,7 @@ public class AuthController {
             if (admin == null || !admin.getRoles().contains(ERole.ROLE_ADMIN)) {
                 return ResponseEntity.badRequest().body(new MessageResponse("Invalid admin ID."));
             }
+            signUpRequest.setAdminId(admin.getId());
         }
 
         // Create the user, hashing the password with BCrypt before it ever touches the DB.

@@ -1,8 +1,15 @@
 import api from './api'
 
 const TaskService = {
-  async listMine() {
-    const response = await api.get('/tasks/my')
+  // `statusOrStatuses` is optional: omit for the pending inbox (unchanged
+  // default), pass a single status ('APPROVED'), an array (['APPROVED',
+  // 'REJECTED']), or 'ALL' for the full decision history.
+  async listMine(statusOrStatuses) {
+    const params = {}
+    if (statusOrStatuses) {
+      params.status = Array.isArray(statusOrStatuses) ? statusOrStatuses.join(',') : statusOrStatuses
+    }
+    const response = await api.get('/tasks/my', { params })
     return response.data
   },
 

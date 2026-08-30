@@ -1,3 +1,36 @@
+.approvals-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.approvals-tab {
+  border: 1px solid var(--border, #2a2f36);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.approvals-tab--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.approval-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.approval-decision {
+  font-style: italic;
+}
+
 .approvals-list {
   display: flex;
   flex-direction: column;

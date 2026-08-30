@@ -1,8 +1,10 @@
 package com.example.authapp.dto;
 
+import com.example.authapp.entity.TaskStatus;
+
 import java.time.Instant;
 
-/** Row shape for "My Tasks" / Pending Approvals inbox. */
+/** Row shape for "My Tasks" — the pending Approvals inbox and the Approved/Rejected history views. */
 public class TaskSummaryDTO {
     private Long taskId;
     private Long requestId;
@@ -12,12 +14,23 @@ public class TaskSummaryDTO {
     private String stepName;
     private String requestedBy;
     private Instant createdAt;
+    private TaskStatus status;
+    private String comment;
+    private Instant completedAt;
 
     public TaskSummaryDTO() {
     }
 
+    /** Back-compat constructor: pending-inbox rows with no decision yet. */
     public TaskSummaryDTO(Long taskId, Long requestId, Long workflowInstanceId, String requestTitle,
-                           String requestType, String stepName, String requestedBy, Instant createdAt) {
+                          String requestType, String stepName, String requestedBy, Instant createdAt) {
+        this(taskId, requestId, workflowInstanceId, requestTitle, requestType, stepName, requestedBy,
+                createdAt, TaskStatus.PENDING, null, null);
+    }
+
+    public TaskSummaryDTO(Long taskId, Long requestId, Long workflowInstanceId, String requestTitle,
+                          String requestType, String stepName, String requestedBy, Instant createdAt,
+                          TaskStatus status, String comment, Instant completedAt) {
         this.taskId = taskId;
         this.requestId = requestId;
         this.workflowInstanceId = workflowInstanceId;
@@ -26,6 +39,9 @@ public class TaskSummaryDTO {
         this.stepName = stepName;
         this.requestedBy = requestedBy;
         this.createdAt = createdAt;
+        this.status = status;
+        this.comment = comment;
+        this.completedAt = completedAt;
     }
 
     public Long getTaskId() { return taskId; }
@@ -51,4 +67,13 @@ public class TaskSummaryDTO {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public TaskStatus getStatus() { return status; }
+    public void setStatus(TaskStatus status) { this.status = status; }
+
+    public String getComment() { return comment; }
+    public void setComment(String comment) { this.comment = comment; }
+
+    public Instant getCompletedAt() { return completedAt; }
+    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
 }

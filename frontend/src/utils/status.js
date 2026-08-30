@@ -1,6 +1,11 @@
 // Maps backend WorkflowStatus values to a display label + badge style.
 const STATUS_MAP = {
   DRAFT: { label: 'Draft', className: 'badge-neutral' },
+  // Task-level statuses (WorkflowTask.status), reused for the Approvals
+  // page's Approved/Rejected/history tabs alongside the WorkflowStatus
+  // values below.
+  PENDING: { label: 'Pending', className: 'badge-pending' },
+  INFO_REQUESTED: { label: 'Info Requested', className: 'badge-info' },
   SUBMITTED: { label: 'Submitted', className: 'badge-pending' },
   AI_PROCESSING: { label: 'AI Processing', className: 'badge-pending' },
   PENDING_MANAGER_APPROVAL: { label: 'Pending Manager', className: 'badge-pending' },
@@ -22,7 +27,7 @@ export function formatDate(iso) {
   if (!iso) return '\u2014'
   const d = new Date(iso)
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
-    ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+      ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
 // Field definitions per request type, used to render the right inputs on
