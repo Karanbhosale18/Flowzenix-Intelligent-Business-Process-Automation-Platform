@@ -43,3 +43,9 @@ select.field-input {
   color: var(--text-faint);
   margin: 0;
 }
+.preview-manager {
+  margin: -4px 0 20px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}

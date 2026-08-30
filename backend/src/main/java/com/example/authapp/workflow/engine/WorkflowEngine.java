@@ -15,7 +15,7 @@ import java.util.Optional;
  * The reusable workflow engine. This is the ONE piece of code that
  * understands how to run *any* workflow definition — it never branches on
  * request type. Adding "IT_SUPPORT" or "EXPENSE_REIMBURSEMENT" means
- * inserting a new WorkflowDefinition + WorkflowSteps (see WorkflowSeeder),
+ * inserting a new WorkflowDefinition + WorkflowSteps (via the admin builder),
  * not touching this class.
  *
  * Responsibilities:
@@ -217,6 +217,22 @@ public class WorkflowEngine {
         ERole role = step.getAssignedRole();
         if (role == null) {
             throw new WorkflowException("Step '" + step.getName() + "' has no assigned role configured.");
+        }
+
+        // Every approval step for a manager-submitted request is sent to the
+        // manager's configured Admin.
+        User requester = instance.getCreatedBy();
+        if (requester.getRoles().stream().anyMatch(r -> r.name().endsWith("_MANAGER"))) {
+            Long adminId = requester.getAdminId();
+            if (adminId == null) {
+                throw new WorkflowException("Cannot route to an admin: " + requester.getUsername() + " has no adminId set.");
+            }
+            User admin = userRepository.findById(adminId)
+                    .orElseThrow(() -> new WorkflowException("Configured admin (id " + adminId + ") not found."));
+            if (!admin.getRoles().contains(ERole.ROLE_ADMIN)) {
+                throw new WorkflowException("Configured admin (id " + adminId + ") is not an Admin.");
+            }
+            return admin;
         }
 
         if (role == ERole.ROLE_MANAGER) {

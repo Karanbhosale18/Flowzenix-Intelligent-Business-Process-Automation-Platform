@@ -33,6 +33,12 @@ public class SignupRequest {
     // Required for LEAVE_REQUEST-style workflows that route to "the employee's manager".
     private Long managerId;
 
+    private Long adminId;
+
+    private Long adminReferenceId;
+
+    private Long managerReferenceId;
+
     public String getUsername() {
         return username;
     }
@@ -80,4 +86,11 @@ public class SignupRequest {
     public void setManagerId(Long managerId) {
         this.managerId = managerId;
     }
+
+    public Long getAdminId() { return adminId; }
+    public void setAdminId(Long adminId) { this.adminId = adminId; }
+    public Long getAdminReferenceId() { return adminReferenceId; }
+    public void setAdminReferenceId(Long adminReferenceId) { this.adminReferenceId = adminReferenceId; }
+    public Long getManagerReferenceId() { return managerReferenceId; }
+    public void setManagerReferenceId(Long managerReferenceId) { this.managerReferenceId = managerReferenceId; }
 }

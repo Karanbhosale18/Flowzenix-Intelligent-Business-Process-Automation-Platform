@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
 /**
  * Seeds the two workflow definitions the demo scenario needs
  * (LEAVE_REQUEST, BUDGET_REQUEST) on startup, idempotently. This is
- * intentionally the ONLY place that knows what these two workflows look
- * like — WorkflowEngine has no idea LEAVE_REQUEST or BUDGET_REQUEST exist.
- * An admin-facing workflow builder (Phase 6) would replace this file with
- * a UI that writes the same rows.
+ * intentionally the ONLY place that knows the demo defaults — WorkflowEngine
+ * has no idea LEAVE_REQUEST or BUDGET_REQUEST exist. The admin workflow
+ * builder is the normal path for new definitions; this idempotent bootstrap
+ * remains only so existing demo installations start with their original data.
  */
 @Component
 public class WorkflowSeeder implements CommandLineRunner {

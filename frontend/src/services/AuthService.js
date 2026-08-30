@@ -18,7 +18,7 @@ const AuthService = {
     return response.data
   },
 
-  async signup({ username, email, password, role, department, managerId }) {
+  async signup({ username, email, password, role, department, managerId, adminId, adminReferenceId, managerReferenceId }) {
     // Backend SignupRequest accepts an optional Set<String> `role`, plus
     // `department` and `managerId`. We only include the optional fields when
     // they're actually provided, so the backend's "default to EMPLOYEE"
@@ -28,6 +28,15 @@ const AuthService = {
     if (department && department.trim()) payload.department = department.trim()
     if (managerId !== undefined && managerId !== null && `${managerId}`.trim() !== '') {
       payload.managerId = Number(managerId)
+    }
+    if (adminId !== undefined && adminId !== null && `${adminId}`.trim() !== '') {
+      payload.adminId = Number(adminId)
+    }
+    if (adminReferenceId !== undefined && adminReferenceId !== null && `${adminReferenceId}`.trim() !== '') {
+      payload.adminReferenceId = Number(adminReferenceId)
+    }
+    if (managerReferenceId !== undefined && managerReferenceId !== null && `${managerReferenceId}`.trim() !== '') {
+      payload.managerReferenceId = Number(managerReferenceId)
     }
     const response = await api.post('/auth/signup', payload)
     return response.data

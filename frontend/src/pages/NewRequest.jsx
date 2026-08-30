@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppShell from '../components/AppShell.jsx'
 import RequestService from '../services/RequestService.js'
 import { REQUEST_TYPES, fieldsForType } from '../utils/status.js'
+import WorkflowService from '../services/WorkflowService.js'
+import ProfileService from '../services/ProfileService.js'
 import '../components/AuthForm.css'
 import './NewRequest.css'
 
@@ -16,8 +18,25 @@ export default function NewRequest() {
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [workflowTypes, setWorkflowTypes] = useState(REQUEST_TYPES)
+  const [profile, setProfile] = useState(null)
 
-  const fields = fieldsForType(requestType)
+  useEffect(() => {
+    WorkflowService.listActive().then((definitions) => {
+      if (!definitions?.length) return
+      setWorkflowTypes(definitions.map((definition) => ({
+        value: definition.workflowType,
+        label: definition.name,
+        // Existing request-specific fields remain available; newly-created
+        // definitions intentionally start with a generic title/description form.
+        fields: fieldsForType(definition.workflowType),
+      })))
+    }).catch(() => { /* the static catalogue keeps the form usable during upgrades */ })
+  }, [])
+
+  useEffect(() => { ProfileService.get().then(setProfile).catch(() => setProfile({})) }, [])
+
+  const fields = workflowTypes.find((type) => type.value === requestType)?.fields || []
 
   function handleTypeChange(value) {
     setRequestType(value)
@@ -79,7 +98,7 @@ export default function NewRequest() {
               aria-invalid={!!errors.requestType}
             >
               <option value="">Select a type…</option>
-              {REQUEST_TYPES.map((t) => (
+              {workflowTypes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
@@ -145,6 +164,10 @@ export default function NewRequest() {
         </form>
 
         <aside className="card new-request-preview">
+          <p className="preview-eyebrow">Your manager</p>
+          <p className="preview-manager">
+            {profile === null ? 'Loading manager…' : profile.managerName ? `${profile.managerName} (ID: ${profile.managerId})` : 'No manager assigned — update your profile before submitting a request.'}
+          </p>
           <p className="preview-eyebrow">What happens next</p>
           {requestType ? (
             <ol className="preview-steps">

@@ -61,6 +61,17 @@ public class User {
      */
     private Long managerId;
 
+    /** Admin responsible for this manager's requests. */
+    private Long adminId;
+
+    /** User-chosen, memorable identifier used when assigning managers to an Admin. */
+    @Column(unique = true)
+    private Long adminReferenceId;
+
+    /** User-chosen identifier staff use to connect to their manager. */
+    @Column(unique = true)
+    private Long managerReferenceId;
+
     public User() {
     }
 
@@ -139,4 +150,13 @@ public class User {
     public void setManagerId(Long managerId) {
         this.managerId = managerId;
     }
+
+    public Long getAdminId() { return adminId; }
+    public void setAdminId(Long adminId) { this.adminId = adminId; }
+
+    public Long getAdminReferenceId() { return adminReferenceId; }
+    public void setAdminReferenceId(Long adminReferenceId) { this.adminReferenceId = adminReferenceId; }
+
+    public Long getManagerReferenceId() { return managerReferenceId; }
+    public void setManagerReferenceId(Long managerReferenceId) { this.managerReferenceId = managerReferenceId; }
 }

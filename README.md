@@ -17,9 +17,11 @@ request + budget request) now runs end to end.
   step routes to, and advances/ends the workflow on a decision. It has
   **zero knowledge of "leave" or "budget"** — those exist purely as rows in
   `workflow_definitions` / `workflow_steps`.
-- `WorkflowSeeder` — inserts the two definitions from the spec
-  (`LEAVE_REQUEST`: Employee → Manager; `BUDGET_REQUEST`: Employee → Manager
-  → Finance) on startup, idempotently.
+- `WorkflowSeeder` — idempotent compatibility bootstrap for the two original
+  demo definitions. New definitions are created dynamically through the
+  admin workflow API/builder.
+- Admin workflow builder: ADMIN-only definition and step CRUD, ordering,
+  activation validation, and a React canvas for creating new request types.
 - REST layer: create/list/view requests, list/approve/reject tasks.
 - Frontend: New Request form, My Requests table, Request Detail page with a
   workflow timeline, and a Pending Approvals inbox.
@@ -33,9 +35,9 @@ expense reimbursement) means inserting a new `WorkflowDefinition` +
 `WorkflowStep` rows — no new Java code, no new branches. This is also the
 piece every later phase depends on: AI classification (Phase 5) just needs
 to produce a `requestType` + `metadata` map that gets handed to the same
-`RequestService.createRequest()`, and the admin workflow builder (Phase 6)
-is just a UI that writes the same definition/step rows `WorkflowSeeder`
-writes today.
+`RequestService.createRequest()`, and the admin workflow builder is a UI that
+writes the same definition/step rows directly — no Java code changes are
+needed for a new request type.
 
 ## 3. File / folder structure
 
@@ -265,8 +267,6 @@ mvn test
   touches `NewRequest.jsx` and, on the backend, whatever populates
   `CreateRequestDTO` before it reaches `RequestService` — `WorkflowEngine`
   doesn't change.
-- **Admin workflow builder UI** (Phase 6) — `WorkflowSeeder` stands in for
-  it; the schema is already shaped for a builder to write directly to it.
 - **Notifications** (Phase 3/6) — decisions are recorded and visible on the
   detail page, but no email/in-app notification fires yet.
 - **Conditional routing** (e.g. "route to a VP if amount > ₹1,00,000") —

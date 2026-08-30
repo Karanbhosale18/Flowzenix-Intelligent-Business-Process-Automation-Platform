@@ -104,6 +104,20 @@
   cursor: pointer;
 }
 
+.shell-theme {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.shell-theme:hover { border-color: var(--accent); color: var(--accent); }
+
 .shell-logout:hover {
   border-color: var(--accent);
   color: var(--accent);
