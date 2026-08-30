@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import AppShell from '../components/AppShell.jsx'
 import RequestService from '../services/RequestService.js'
 import TaskService from '../services/TaskService.js'
+import ManagerFinanceService from '../services/ManagerFinanceService.js'
+import AuthService from '../services/AuthService.js'
 import { statusInfo, formatDate } from '../utils/status.js'
 import './Dashboard.css'
 
@@ -11,6 +13,12 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState(null)
 
   const [taskHistory, setTaskHistory] = useState(null)
+  const [financeManager, setFinanceManager] = useState(null)
+  const [financeManagerId, setFinanceManagerId] = useState('')
+  const [financeManagerMessage, setFinanceManagerMessage] = useState('')
+  const [financeManagerError, setFinanceManagerError] = useState('')
+  const [savingFinanceManager, setSavingFinanceManager] = useState(false)
+  const isManager = (AuthService.getCurrentUser()?.roles || []).some((role) => role.endsWith('_MANAGER'))
 
   useEffect(() => {
     RequestService.listMine().then(setRequests).catch(() => setRequests([]))
@@ -18,7 +26,34 @@ export default function Dashboard() {
     // Everything this user has ever acted on, so we can show how many
     // requests they've approved/rejected — not just what's still pending.
     TaskService.listMine('ALL').then(setTaskHistory).catch(() => setTaskHistory([]))
+    if (isManager) {
+      ManagerFinanceService.getAssignment().then((assignment) => {
+        setFinanceManager(assignment)
+        setFinanceManagerId(assignment.financeManagerId || '')
+      }).catch(() => setFinanceManagerError('Could not load your Finance Manager assignment.'))
+    }
   }, [])
+
+  async function saveFinanceManager(event) {
+    event.preventDefault()
+    setFinanceManagerError('')
+    setFinanceManagerMessage('')
+    if (!financeManagerId || Number(financeManagerId) < 1) {
+      setFinanceManagerError('Enter a valid Finance Manager user ID.')
+      return
+    }
+    setSavingFinanceManager(true)
+    try {
+      const assignment = await ManagerFinanceService.updateAssignment(Number(financeManagerId))
+      setFinanceManager(assignment)
+      setFinanceManagerId(assignment.financeManagerId)
+      setFinanceManagerMessage(`Budget requests will now be delegated to ${assignment.financeManagerName}.`)
+    } catch (error) {
+      setFinanceManagerError(error.response?.data?.message || 'Enter the user ID of an active Finance Manager.')
+    } finally {
+      setSavingFinanceManager(false)
+    }
+  }
 
   const pending = requests?.filter((r) => r.status.startsWith('PENDING') || r.status === 'SUBMITTED').length ?? '—'
   const approved = requests?.filter((r) => r.status === 'APPROVED' || r.status === 'COMPLETED').length ?? '—'
@@ -40,6 +75,23 @@ export default function Dashboard() {
           <StatCard label="Approved by you" value={myDecidedApproved} to="/approvals?tab=approved" />
           <StatCard label="Rejected by you" value={myDecidedRejected} to="/approvals?tab=rejected" />
         </div>
+
+        {isManager && <section className="card finance-assignment-card">
+          <div>
+            <p className="section-title">Budget Finance Manager</p>
+            <p className="field-hint">Choose the active Finance Manager who receives budget requests from your team after your approval. This selection stays in effect until you change it.</p>
+          </div>
+          <form className="finance-assignment-form" onSubmit={saveFinanceManager} noValidate>
+            <label className="field-label" htmlFor="financeManagerId">Finance Manager user ID</label>
+            <div className="finance-assignment-controls">
+              <input id="financeManagerId" type="number" min="1" className="field-input" value={financeManagerId} onChange={(event) => setFinanceManagerId(event.target.value)} />
+              <button className="btn btn-primary" disabled={savingFinanceManager}>{savingFinanceManager ? 'Saving…' : 'Save'}</button>
+            </div>
+            {financeManager?.financeManagerName && <p className="field-hint">Current Finance Manager: <strong>{financeManager.financeManagerName}</strong> (user ID: {financeManager.financeManagerId})</p>}
+            {financeManagerError && <p className="form-message form-message--error">{financeManagerError}</p>}
+            {financeManagerMessage && <p className="form-message form-message--success">{financeManagerMessage}</p>}
+          </form>
+        </section>}
 
         <div className="dash-columns">
           <section className="card dash-section">

@@ -150,6 +150,16 @@ existing `user_roles` rows from `ROLE_USER` to `ROLE_EMPLOYEE`.
 | POST | `/api/tasks/{id}/approve` | Assignee or `ADMIN` | Body (optional): `{ "comment": "..." }` |
 | POST | `/api/tasks/{id}/reject` | Assignee or `ADMIN` | Same body shape. |
 | POST | `/api/tasks/{id}/request-information` | Assignee or `ADMIN` | Sets status to `PENDING_INFORMATION`. |
+| GET / PUT | `/api/manager/finance-manager` | Reporting manager | View or set the active Finance Manager user ID for the manager's team budget requests. |
+
+### Budget delegation
+
+An employee's `managerId` links them to their reporting manager. Before that
+manager approves budget requests, they must select an active user with the
+`FINANCE_MANAGER` role from the dashboard using the Finance Manager's user ID.
+After the manager approves a budget request, it is routed only to that saved
+Finance Manager. The assignment remains active for future budget requests until
+the manager changes it.
 
 **Create a leave request:**
 ```json
@@ -178,6 +188,14 @@ workflow problems (unknown request type, no manager set, no Finance user
 exists yet), `403` for access-denied, `400` for validation failures.
 
 ## 6. How to test it
+
+### Interactive API documentation
+
+After starting the backend, open [Swagger UI](http://localhost:8080/doc). The
+OpenAPI document is also available at
+`http://localhost:8080/v3/api-docs`. Use `POST /api/auth/login` to obtain a
+token, click **Authorize**, and paste the JWT (without the `Bearer` prefix) to
+try protected endpoints.
 
 1. **Seed at least one Manager and one Finance user**, since the engine
    needs someone to route to:

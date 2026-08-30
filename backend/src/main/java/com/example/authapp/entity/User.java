@@ -72,6 +72,17 @@ public class User {
     @Column(unique = true)
     private Long managerReferenceId;
 
+    /** User-chosen identifier managers use to delegate budget approvals to a Finance Manager. */
+    @Column(unique = true)
+    private Long financeManagerReferenceId;
+
+    /**
+     * Finance Manager selected by this manager for their team's budget
+     * requests. This is a user id and is intentionally maintained by the
+     * manager, not inferred from whichever Finance user was created first.
+     */
+    private Long financeManagerId;
+
     public User() {
     }
 
@@ -159,4 +170,10 @@ public class User {
 
     public Long getManagerReferenceId() { return managerReferenceId; }
     public void setManagerReferenceId(Long managerReferenceId) { this.managerReferenceId = managerReferenceId; }
+
+    public Long getFinanceManagerReferenceId() { return financeManagerReferenceId; }
+    public void setFinanceManagerReferenceId(Long financeManagerReferenceId) { this.financeManagerReferenceId = financeManagerReferenceId; }
+
+    public Long getFinanceManagerId() { return financeManagerId; }
+    public void setFinanceManagerId(Long financeManagerId) { this.financeManagerId = financeManagerId; }
 }

@@ -139,13 +139,17 @@ class WorkflowEngineTest {
     @DisplayName("decide(): approving step 1 of a budget request advances to Finance rather than finishing")
     void approveFirstOfTwoStepsAdvances() {
         User manager = manager(2L, "meena");
-        User finance = withRole(3L, "fatima", ERole.ROLE_FINANCE);
+        manager.setFinanceManagerId(3L);
+        User finance = withRole(3L, "fatima", ERole.ROLE_FINANCE, ERole.ROLE_FINANCE_MANAGER);
         WorkflowDefinition def = budgetDefinition();
-        WorkflowInstance instance = instanceAt(def, employee(1L, "karan"),
+        User employee = employee(1L, "karan");
+        employee.setManagerId(2L);
+        WorkflowInstance instance = instanceAt(def, employee,
                 WorkflowStatus.PENDING_MANAGER_APPROVAL, 1);
         WorkflowTask step1Task = pendingTask(instance, def.getOrderedSteps().get(0), manager);
 
-        when(userRepository.findFirstByRole(ERole.ROLE_FINANCE)).thenReturn(Optional.of(finance));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(manager));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(finance));
 
         engine.decide(step1Task, ApprovalDecision.APPROVED, manager, "ok by me");
 
@@ -161,6 +165,23 @@ class WorkflowEngineTest {
         assertThat(financeTask.getAssignedTo()).isSameAs(finance);
         assertThat(financeTask.getStatus()).isEqualTo(TaskStatus.PENDING);
         assertThat(financeTask.getStep().getName()).isEqualTo("Finance Approval");
+    }
+
+    @Test
+    @DisplayName("decide(): a budget request cannot advance to Finance until its manager chooses a Finance Manager")
+    void budgetApprovalFailsWithoutManagersFinanceAssignment() {
+        User manager = manager(2L, "meena");
+        User employee = employee(1L, "karan");
+        employee.setManagerId(2L);
+        WorkflowDefinition def = budgetDefinition();
+        WorkflowInstance instance = instanceAt(def, employee,
+                WorkflowStatus.PENDING_MANAGER_APPROVAL, 1);
+        WorkflowTask step1Task = pendingTask(instance, def.getOrderedSteps().get(0), manager);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(manager));
+
+        assertThatThrownBy(() -> engine.decide(step1Task, ApprovalDecision.APPROVED, manager, "ok"))
+                .isInstanceOf(WorkflowException.class)
+                .hasMessageContaining("has not selected a Finance Manager");
     }
 
     @Test
@@ -266,7 +287,8 @@ class WorkflowEngineTest {
         User employee = employee(1L, "karan");
         employee.setManagerId(2L);
         User manager = manager(2L, "meena");
-        User finance = withRole(3L, "fatima", ERole.ROLE_FINANCE);
+        manager.setFinanceManagerId(3L);
+        User finance = withRole(3L, "fatima", ERole.ROLE_FINANCE, ERole.ROLE_FINANCE_MANAGER);
         WorkflowDefinition def = budgetDefinition();
 
         // Record every task the engine saves so we can act on the latest one.
@@ -278,7 +300,7 @@ class WorkflowEngineTest {
         when(workflowInstanceRepository.save(any(WorkflowInstance.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
         when(userRepository.findById(2L)).thenReturn(Optional.of(manager));
-        when(userRepository.findFirstByRole(ERole.ROLE_FINANCE)).thenReturn(Optional.of(finance));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(finance));
 
         // 1. Submit — routes to the manager.
         WorkflowInstance instance = engine.start(def, employee);

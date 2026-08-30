@@ -9,6 +9,8 @@ import com.example.authapp.payload.response.MessageResponse;
 import com.example.authapp.repository.UserRepository;
 import com.example.authapp.security.jwt.JwtUtils;
 import com.example.authapp.security.services.UserDetailsImpl;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Public registration and JWT login endpoints")
+@SecurityRequirements
 public class AuthController {
 
     private static final Set<String> ALLOWED_DEPARTMENTS = Set.of(
@@ -74,13 +78,27 @@ public class AuthController {
         }
         boolean isAdmin = "ADMIN".equals(selectedRole);
         boolean isManager = selectedRole.endsWith("_MANAGER");
-        if (isAdmin && (signUpRequest.getAdminReferenceId() == null || signUpRequest.getAdminReferenceId() < 1
-                || userRepository.existsByAdminReferenceId(signUpRequest.getAdminReferenceId()))) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Choose a unique Admin ID."));
+        boolean isFinanceManager = "FINANCE_MANAGER".equals(selectedRole);
+        if (isAdmin && (signUpRequest.getAdminReferenceId() == null || signUpRequest.getAdminReferenceId() < 1)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Enter a valid Admin ID."));
         }
-        if (isManager && (signUpRequest.getManagerReferenceId() == null || signUpRequest.getManagerReferenceId() < 1
-                || userRepository.existsByManagerReferenceId(signUpRequest.getManagerReferenceId()))) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Choose a unique Manager ID."));
+        if (isAdmin && userRepository.existsByAdminReferenceId(signUpRequest.getAdminReferenceId())) {
+            return ResponseEntity.badRequest().body(new MessageResponse(
+                    "Admin ID " + signUpRequest.getAdminReferenceId() + " already exists. Choose a different Admin ID."));
+        }
+        if (isManager && !isFinanceManager && (signUpRequest.getManagerReferenceId() == null || signUpRequest.getManagerReferenceId() < 1)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Enter a valid Manager ID."));
+        }
+        if (isManager && !isFinanceManager && userRepository.existsByManagerReferenceId(signUpRequest.getManagerReferenceId())) {
+            return ResponseEntity.badRequest().body(new MessageResponse(
+                    "Manager ID " + signUpRequest.getManagerReferenceId() + " already exists. Choose a different Manager ID."));
+        }
+        if (isFinanceManager && (signUpRequest.getFinanceManagerReferenceId() == null || signUpRequest.getFinanceManagerReferenceId() < 1)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Enter a valid Finance Manager ID."));
+        }
+        if (isFinanceManager && userRepository.existsByFinanceManagerReferenceId(signUpRequest.getFinanceManagerReferenceId())) {
+            return ResponseEntity.badRequest().body(new MessageResponse(
+                    "Finance Manager ID " + signUpRequest.getFinanceManagerReferenceId() + " already exists. Choose a different Finance Manager ID."));
         }
         if (!isAdmin && !isManager) {
             User manager = signUpRequest.getManagerId() == null ? null : userRepository.findByManagerReferenceId(signUpRequest.getManagerId()).orElse(null);
@@ -116,7 +134,8 @@ public class AuthController {
         user.setManagerId(signUpRequest.getManagerId());
         user.setAdminId(signUpRequest.getAdminId());
         if (isAdmin) user.setAdminReferenceId(signUpRequest.getAdminReferenceId());
-        if (isManager) user.setManagerReferenceId(signUpRequest.getManagerReferenceId());
+        if (isManager && !isFinanceManager) user.setManagerReferenceId(signUpRequest.getManagerReferenceId());
+        if (isFinanceManager) user.setFinanceManagerReferenceId(signUpRequest.getFinanceManagerReferenceId());
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));

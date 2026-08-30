@@ -24,7 +24,8 @@ import java.util.Optional;
  *  - decide(): record an approve/reject/request-information decision on a
  *    task, advance to the next step (or finish the workflow), write history.
  *  - resolveAssignee(): map a WorkflowStep's assignedRole to an actual
- *    person — the employee's manager for ROLE_MANAGER, otherwise the first
+ *    person — the employee's manager for ROLE_MANAGER, their manager's
+ *    selected Finance Manager for budget approvals, otherwise the first
  *    enabled user holding that role.
  */
 @Service
@@ -209,14 +210,31 @@ public class WorkflowEngine {
 
     /**
      * ROLE_MANAGER resolves to the requester's own reporting manager
-     * (User.managerId). Every other role resolves to the first enabled
-     * user holding that role — the "Finance team" / "HR team" / "IT Admin"
-     * for this single-assignee-per-role setup.
+     * (User.managerId). The Finance step of a budget workflow resolves to
+     * that reporting manager's saved Finance Manager; this makes the
+     * delegation explicit and stable for the team. Other roles resolve to
+     * the first enabled user holding the requested role.
      */
     private User resolveAssignee(WorkflowInstance instance, WorkflowStep step) {
         ERole role = step.getAssignedRole();
         if (role == null) {
             throw new WorkflowException("Step '" + step.getName() + "' has no assigned role configured.");
+        }
+
+        if (role == ERole.ROLE_FINANCE
+                && "BUDGET_REQUEST".equals(instance.getWorkflowDefinition().getWorkflowType())) {
+            User manager = reportingManagerFor(instance);
+            Long financeManagerId = manager.getFinanceManagerId();
+            if (financeManagerId == null) {
+                throw new WorkflowException("Cannot route this budget request: manager " + manager.getUsername()
+                        + " has not selected a Finance Manager yet.");
+            }
+            User financeManager = userRepository.findById(financeManagerId)
+                    .orElseThrow(() -> new WorkflowException("Configured Finance Manager (id " + financeManagerId + ") was not found."));
+            if (!financeManager.isEnabled() || !financeManager.getRoles().contains(ERole.ROLE_FINANCE_MANAGER)) {
+                throw new WorkflowException("Configured Finance Manager (id " + financeManagerId + ") is not active or no longer has the Finance Manager role.");
+            }
+            return financeManager;
         }
 
         // Every approval step for a manager-submitted request is sent to the
@@ -249,6 +267,19 @@ public class WorkflowEngine {
         return userRepository.findFirstByRole(role)
                 .orElseThrow(() -> new WorkflowException(
                         "No user with role " + role + " is available to handle this step."));
+    }
+
+    private User reportingManagerFor(WorkflowInstance instance) {
+        User requester = instance.getCreatedBy();
+        if (requester.getRoles().stream().anyMatch(role -> role.name().endsWith("_MANAGER"))) {
+            return requester;
+        }
+        Long managerId = requester.getManagerId();
+        if (managerId == null) {
+            throw new WorkflowException("Cannot route to Finance: " + requester.getUsername() + " has no managerId set on their profile.");
+        }
+        return userRepository.findById(managerId)
+                .orElseThrow(() -> new WorkflowException("Configured manager (id " + managerId + ") not found."));
     }
 
     private WorkflowStatus statusForRole(ERole role) {

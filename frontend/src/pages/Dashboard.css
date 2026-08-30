@@ -15,6 +15,25 @@
 .stat-label { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
 .stat-card--accent .stat-value { color: var(--accent); }
 
+.finance-assignment-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+  padding: 20px;
+}
+
+.finance-assignment-card .section-title { margin: 0 0 6px; }
+.finance-assignment-card .field-hint { margin: 0; }
+.finance-assignment-form { min-width: 0; }
+.finance-assignment-controls { display: flex; gap: 8px; margin-top: 6px; }
+.finance-assignment-controls .field-input { min-width: 0; }
+.finance-assignment-controls .btn { white-space: nowrap; }
+.form-message { margin: 8px 0 0; font-size: 13px; }
+.form-message--error { color: var(--error); }
+.form-message--success { color: var(--accent); }
+
 .dash-columns {
   display: grid;
   grid-template-columns: 1fr;
@@ -23,6 +42,10 @@
 
 @media (min-width: 800px) {
   .dash-columns { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 799px) {
+  .finance-assignment-card { grid-template-columns: 1fr; }
 }
 
 .dash-section-header {

@@ -49,6 +49,10 @@ export default function Signup() {
     if (isAdmin && !form.adminReferenceId.trim()) next.adminReferenceId = 'Choose your Admin ID.'
     if (form.managerId.trim() && !/^[1-9]\d*$/.test(form.managerId.trim()))
       next.managerId = 'Enter a valid manager user ID (a positive number).'
+    if (isManager && form.managerReferenceId.trim() && !/^[1-9]\d*$/.test(form.managerReferenceId.trim()))
+      next.managerReferenceId = 'Enter a valid Manager ID (a positive number).'
+    if (isAdmin && form.adminReferenceId.trim() && !/^[1-9]\d*$/.test(form.adminReferenceId.trim()))
+      next.adminReferenceId = 'Enter a valid Admin ID (a positive number).'
 
     setErrors(next)
     return Object.keys(next).length === 0

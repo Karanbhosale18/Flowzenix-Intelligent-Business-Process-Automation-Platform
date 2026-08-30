@@ -39,6 +39,8 @@ public class SignupRequest {
 
     private Long managerReferenceId;
 
+    private Long financeManagerReferenceId;
+
     public String getUsername() {
         return username;
     }
@@ -93,4 +95,6 @@ public class SignupRequest {
     public void setAdminReferenceId(Long adminReferenceId) { this.adminReferenceId = adminReferenceId; }
     public Long getManagerReferenceId() { return managerReferenceId; }
     public void setManagerReferenceId(Long managerReferenceId) { this.managerReferenceId = managerReferenceId; }
+    public Long getFinanceManagerReferenceId() { return financeManagerReferenceId; }
+    public void setFinanceManagerReferenceId(Long financeManagerReferenceId) { this.financeManagerReferenceId = financeManagerReferenceId; }
 }
