@@ -54,12 +54,15 @@ public class User {
     private String department;
 
     /**
-     * References users.id of this person's reporting manager. Plain scalar
-     * column rather than a mapped @ManyToOne — the workflow engine only
-     * ever needs to look the manager up by id, and this avoids a
-     * self-referencing entity relationship for a single use case.
+     * Reporting manager self-referencing entity relationship backed by foreign key constraint fk_users_manager.
      */
-    private Long managerId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private User manager;
+
+    @OneToMany(mappedBy = "manager")
+    private Set<User> directReports = new HashSet<>();
+
 
     /** Admin responsible for this manager's requests. */
     private Long adminId;
@@ -154,12 +157,34 @@ public class User {
         this.department = department;
     }
 
+    public User getManager() {
+        return manager;
+    }
+
+    public void setManager(User manager) {
+        this.manager = manager;
+    }
+
+    public Set<User> getDirectReports() {
+        return directReports;
+    }
+
+    public void setDirectReports(Set<User> directReports) {
+        this.directReports = directReports;
+    }
+
     public Long getManagerId() {
-        return managerId;
+        return manager != null ? manager.getId() : null;
     }
 
     public void setManagerId(Long managerId) {
-        this.managerId = managerId;
+        if (managerId == null) {
+            this.manager = null;
+        } else if (this.manager == null || !managerId.equals(this.manager.getId())) {
+            User shell = new User();
+            shell.setId(managerId);
+            this.manager = shell;
+        }
     }
 
     public Long getAdminId() { return adminId; }

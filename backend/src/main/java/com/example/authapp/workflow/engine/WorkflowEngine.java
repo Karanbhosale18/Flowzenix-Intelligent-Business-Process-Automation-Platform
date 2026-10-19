@@ -309,8 +309,12 @@ public class WorkflowEngine {
                         "Cannot route to a manager: " + instance.getCreatedBy().getUsername() +
                         " has no managerId set on their profile.");
             }
-            return userRepository.findById(managerId)
+            User manager = userRepository.findById(managerId)
                     .orElseThrow(() -> new WorkflowException("Configured manager (id " + managerId + ") not found."));
+            if (!manager.isEnabled()) {
+                throw new WorkflowException("Assigned manager (" + manager.getUsername() + ") is inactive or disabled.");
+            }
+            return manager;
         }
 
         return userRepository.findFirstByRole(role)

@@ -37,4 +37,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("select u from User u join u.roles r where r = :role and u.enabled = true order by u.id asc")
     Optional<User> findFirstByRole(@Param("role") ERole role);
+
+    @Query("select u from User u where u.manager.id = :managerId order by u.username asc")
+    java.util.List<User> findByManagerId(@Param("managerId") Long managerId);
+
+    java.util.List<User> findByManager(User manager);
+
+    @Query("select count(u) from User u join u.roles r where r = :role and u.enabled = true")
+    long countByRolesContainingAndEnabledTrue(@Param("role") ERole role);
+
+    @Query("select distinct u from User u join u.roles r where r = :role and u.enabled = true order by u.username asc")
+    java.util.List<User> findByRolesContainingAndEnabledTrue(@Param("role") ERole role);
 }

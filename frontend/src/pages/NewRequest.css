@@ -2,19 +2,27 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
-  max-width: 880px;
+  max-width: 980px;
 }
 
 @media (min-width: 760px) {
   .new-request-layout {
-    grid-template-columns: 1.4fr 1fr;
+    grid-template-columns: 1.5fr 1fr;
     align-items: start;
   }
 }
 
-.new-request-form { max-width: 480px; }
+.new-request-form {
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-.new-request-textarea { resize: vertical; font-family: inherit; }
+.new-request-textarea {
+  resize: vertical;
+  font-family: inherit;
+}
 
 select.field-input {
   appearance: none;
@@ -43,9 +51,91 @@ select.field-input {
   color: var(--text-faint);
   margin: 0;
 }
+
 .preview-manager {
   margin: -4px 0 20px;
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* AI Assistant & Invoice Intelligence styles */
+.feature-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.feature-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.feature-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0;
+}
+
+.feature-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.ai-preview-box {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.ai-field-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 6px;
+}
+
+.ai-field-label {
+  color: var(--text-muted);
+}
+
+.ai-field-val {
+  font-weight: 500;
+}
+
+.warning-tag {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.error-tag {
+  background: var(--error-soft);
+  color: var(--error);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 4px;
 }

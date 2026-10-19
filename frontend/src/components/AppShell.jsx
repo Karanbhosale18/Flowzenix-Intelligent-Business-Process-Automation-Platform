@@ -54,10 +54,16 @@ export default function AppShell({ children, title, actions }) {
             My profile
           </NavLink>
           {(user?.roles || []).includes('ROLE_ADMIN') && (
-            <NavLink to="/admin" className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
-              <span className="shell-nav-icon" aria-hidden="true">⚙</span>
-              Admin
-            </NavLink>
+            <>
+              <NavLink to="/admin" end className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
+                <span className="shell-nav-icon" aria-hidden="true">⚙</span>
+                Admin
+              </NavLink>
+              <NavLink to="/admin/users" className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
+                <span className="shell-nav-icon" aria-hidden="true">👥</span>
+                Users
+              </NavLink>
+            </>
           )}
         </nav>
 

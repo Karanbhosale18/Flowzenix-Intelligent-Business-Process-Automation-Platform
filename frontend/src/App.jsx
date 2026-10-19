@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Workflows from './pages/admin/Workflows.jsx'
 import CreateWorkflow from './pages/admin/CreateWorkflow.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
+import UserManagement from './pages/admin/UserManagement.jsx'
 import Profile from './pages/Profile.jsx'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/requests/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
         <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><UserManagement /></ProtectedRoute>} />
         <Route path="/admin/workflows" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><Workflows /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/workflows/new" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><CreateWorkflow /></ProtectedRoute>} />
