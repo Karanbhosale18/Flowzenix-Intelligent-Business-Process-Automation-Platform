@@ -266,6 +266,55 @@ class RequestServiceTest {
     }
 
     // ---------------------------------------------------------------------
+    // provideInformation() — workflow resumption with additional info
+    // ---------------------------------------------------------------------
+
+    @Test
+    @DisplayName("provideInformation(): owner provides information, merges metadata and resumes workflow")
+    void provideInformationByOwnerSucceeds() {
+        User employee = employee(1L, "karan");
+        WorkflowDefinition def = leaveDefinition();
+        WorkflowInstance instance = instanceAt(def, employee, WorkflowStatus.PENDING_INFORMATION, 1);
+        Request req = request(50L, instance, "LEAVE_REQUEST", "Vacation");
+        req.setMetadata(new java.util.HashMap<>(java.util.Map.of("initial", "data")));
+
+        when(requestRepository.findById(50L)).thenReturn(Optional.of(req));
+        when(workflowTaskRepository.findByWorkflowInstanceOrderByCreatedAtAsc(instance)).thenReturn(List.of());
+        when(workflowHistoryRepository.findByWorkflowInstanceOrderByCreatedAtAsc(instance)).thenReturn(List.of());
+
+        com.example.authapp.dto.ProvideInformationDTO dto = new com.example.authapp.dto.ProvideInformationDTO(
+                "Updated dates attached", java.util.Map.of("days", 3, "destination", "Goa"));
+
+        RequestDetailDTO detail = service.provideInformation(50L, employee, dto);
+
+        assertThat(detail).isNotNull();
+        assertThat(req.getMetadata()).containsEntry("initial", "data");
+        assertThat(req.getMetadata()).containsEntry("days", 3);
+        assertThat(req.getMetadata()).containsEntry("destination", "Goa");
+        verify(workflowEngine).provideInformation(instance, employee, "Updated dates attached");
+    }
+
+    @Test
+    @DisplayName("provideInformation(): non-owner non-admin caller is rejected with AccessDeniedException")
+    void provideInformationByNonOwnerThrows() {
+        User owner = employee(1L, "karan");
+        User stranger = employee(2L, "stranger");
+        WorkflowDefinition def = leaveDefinition();
+        WorkflowInstance instance = instanceAt(def, owner, WorkflowStatus.PENDING_INFORMATION, 1);
+        Request req = request(50L, instance, "LEAVE_REQUEST", "Vacation");
+
+        when(requestRepository.findById(50L)).thenReturn(Optional.of(req));
+
+        com.example.authapp.dto.ProvideInformationDTO dto = new com.example.authapp.dto.ProvideInformationDTO("info");
+
+        assertThatThrownBy(() -> service.provideInformation(50L, stranger, dto))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Only the requester");
+
+        verifyNoInteractions(workflowEngine);
+    }
+
+    // ---------------------------------------------------------------------
     // Fixtures
     // ---------------------------------------------------------------------
 

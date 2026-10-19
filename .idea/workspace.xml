@@ -5,26 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1d1c06e5-725b-4b1d-b1cf-efe8a1b62394" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/package-lock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/config/WebSecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/config/WebSecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/config/WorkflowSeeder.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/config/WorkflowSeeder.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/AuthController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/ManagerFinanceController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/ManagerFinanceController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/ProfileController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/ProfileController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/TestController.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/repository/UserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/service/TaskService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/service/TaskService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/RequestController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/controller/RequestController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/dto/WorkflowDefinitionResponseDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/dto/WorkflowDefinitionResponseDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/entity/WorkflowDefinition.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/entity/WorkflowDefinition.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/repository/WorkflowDefinitionRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/repository/WorkflowDefinitionRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/repository/WorkflowInstanceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/repository/WorkflowInstanceRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/service/RequestService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/service/RequestService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/service/WorkflowAdminService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/service/WorkflowAdminService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/workflow/engine/WorkflowEngine.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/example/authapp/workflow/engine/WorkflowEngine.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/service/TaskServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/service/TaskServiceTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/AppShell.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/AppShell.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/ProtectedRoute.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Profile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Profile.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/service/RequestServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/service/RequestServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/service/WorkflowAdminServiceTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/service/WorkflowAdminServiceTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/workflow/engine/WorkflowEngineTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/test/java/com/example/authapp/workflow/engine/WorkflowEngineTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/RequestDetail.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/RequestDetail.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Signup.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Signup.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/services/AuthService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/AuthService.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/services/RequestService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/RequestService.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -141,7 +136,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/backend/src/main/java/com/example/authapp/workflow/engine/WorkflowEngine.java</url>
-          <line>286</line>
+          <line>335</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
       </breakpoints>

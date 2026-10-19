@@ -9,6 +9,7 @@ public class WorkflowDefinitionResponseDTO {
     private String name;
     private String description;
     private String workflowType;
+    private Integer version;
     private boolean active;
     private Instant createdAt;
     private List<WorkflowStepResponseDTO> steps;
@@ -19,6 +20,7 @@ public class WorkflowDefinitionResponseDTO {
         dto.name = definition.getName();
         dto.description = definition.getDescription();
         dto.workflowType = definition.getWorkflowType();
+        dto.version = definition.getVersion();
         dto.active = definition.isActive();
         dto.createdAt = definition.getCreatedAt();
         dto.steps = definition.getOrderedSteps().stream().map(WorkflowStepResponseDTO::from).toList();
@@ -29,6 +31,7 @@ public class WorkflowDefinitionResponseDTO {
     public String getName() { return name; }
     public String getDescription() { return description; }
     public String getWorkflowType() { return workflowType; }
+    public Integer getVersion() { return version; }
     public boolean isActive() { return active; }
     public Instant getCreatedAt() { return createdAt; }
     public List<WorkflowStepResponseDTO> getSteps() { return steps; }

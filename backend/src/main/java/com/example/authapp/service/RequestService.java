@@ -74,6 +74,37 @@ public class RequestService {
         workflowEngine.cancel(instance, currentUser);
     }
 
+    /**
+     * Lets the request owner (or ADMIN) respond to an approver's information request,
+     * updating request metadata (if supplied), restoring the task to PENDING, and resuming
+     * the workflow.
+     */
+    @Transactional
+    public RequestDetailDTO provideInformation(Long requestId, User currentUser, com.example.authapp.dto.ProvideInformationDTO dto) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new WorkflowException("Request " + requestId + " not found."));
+        WorkflowInstance instance = request.getWorkflowInstance();
+
+        boolean isOwner = instance.getCreatedBy().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRoles().contains(ERole.ROLE_ADMIN);
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("Only the requester can provide requested information.");
+        }
+
+        if (dto != null && dto.getMetadata() != null && !dto.getMetadata().isEmpty()) {
+            if (request.getMetadata() == null) {
+                request.setMetadata(new java.util.HashMap<>());
+            }
+            request.getMetadata().putAll(dto.getMetadata());
+            requestRepository.save(request);
+        }
+
+        String comment = dto != null ? dto.getComment() : null;
+        workflowEngine.provideInformation(instance, currentUser, comment);
+
+        return getRequestDetail(requestId, currentUser);
+    }
+
     public List<RequestSummaryDTO> listRequestsFor(User user) {
         boolean isAdmin = user.getRoles().contains(ERole.ROLE_ADMIN);
         List<WorkflowInstance> instances = isAdmin

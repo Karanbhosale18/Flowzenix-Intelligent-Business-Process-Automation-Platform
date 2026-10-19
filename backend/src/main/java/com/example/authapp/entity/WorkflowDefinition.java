@@ -16,7 +16,9 @@ import java.util.List;
  * than one controller branch per request type.
  */
 @Entity
-@Table(name = "workflow_definitions")
+@Table(name = "workflow_definitions", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_workflow_type_version", columnNames = {"workflowType", "version"})
+})
 public class WorkflowDefinition {
 
     @Id
@@ -30,12 +32,15 @@ public class WorkflowDefinition {
     private String description;
 
     /**
-     * Matches Request.requestType, e.g. "LEAVE_REQUEST". Unique so lookup
-     * by type is unambiguous ("find the active definition for this type").
+     * Matches Request.requestType, e.g. "LEAVE_REQUEST".
+     * Paired with version for unique constraint.
      */
     @NotBlank
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String workflowType;
+
+    @Column(nullable = false)
+    private Integer version = 1;
 
     @Column(nullable = false)
     private boolean active = true;
@@ -78,6 +83,9 @@ public class WorkflowDefinition {
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
+
+    public Integer getVersion() { return version; }
+    public void setVersion(Integer version) { this.version = version; }
 
     public Instant getCreatedAt() { return createdAt; }
 

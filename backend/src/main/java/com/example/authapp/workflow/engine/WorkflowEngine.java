@@ -46,6 +46,9 @@ public class WorkflowEngine {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired(required = false)
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     /**
      * Starts a new workflow instance from the given definition and creates
      * the task for its first step. Definitions with zero steps are treated
@@ -66,7 +69,9 @@ public class WorkflowEngine {
 
         recordHistory(instance, "Request submitted", submittedBy, null, WorkflowStatus.SUBMITTED, null);
 
-        advanceToStep(instance, steps.get(0), submittedBy);
+        WorkflowTask firstTask = advanceToStep(instance, steps.get(0), submittedBy);
+        publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.SUBMITTED,
+                instance, firstTask, submittedBy, null);
 
         return instance;
     }
@@ -105,13 +110,17 @@ public class WorkflowEngine {
                         .findFirst();
 
                 if (nextStep.isPresent()) {
-                    advanceToStep(instance, nextStep.get(), actor);
+                    WorkflowTask nextTask = advanceToStep(instance, nextStep.get(), actor);
+                    publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.APPROVED,
+                            instance, nextTask, actor, comment);
                 } else {
                     instance.setStatus(WorkflowStatus.APPROVED);
                     instance.setCompletedAt(Instant.now());
                     instance.touch();
                     workflowInstanceRepository.save(instance);
                     recordHistory(instance, "Workflow completed", actor, previousStatus, WorkflowStatus.APPROVED, null);
+                    publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.APPROVED,
+                            instance, task, actor, comment);
                 }
             }
             case REJECTED -> {
@@ -127,6 +136,8 @@ public class WorkflowEngine {
 
                 recordHistory(instance, task.getStep().getName() + " rejected", actor,
                         previousStatus, WorkflowStatus.REJECTED, comment);
+                publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.REJECTED,
+                        instance, task, actor, comment);
             }
             case INFO_REQUESTED -> {
                 task.setStatus(TaskStatus.INFO_REQUESTED);
@@ -139,8 +150,42 @@ public class WorkflowEngine {
 
                 recordHistory(instance, "Additional information requested", actor,
                         previousStatus, WorkflowStatus.PENDING_INFORMATION, comment);
+                publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.INFO_REQUESTED,
+                        instance, task, actor, comment);
             }
         }
+    }
+
+    /**
+     * Resumes a workflow that was parked in PENDING_INFORMATION when an approver
+     * requested additional info. The requester provides their response,
+     * restoring the pending task and setting instance status back to pending approval.
+     */
+    @Transactional
+    public void provideInformation(WorkflowInstance instance, User actor, String comment) {
+        if (instance.getStatus() != WorkflowStatus.PENDING_INFORMATION) {
+            throw new WorkflowException(
+                    "Cannot provide information for a request that is currently " + instance.getStatus() + ".");
+        }
+
+        WorkflowTask task = workflowTaskRepository.findByWorkflowInstanceAndStatus(instance, TaskStatus.INFO_REQUESTED)
+                .orElseThrow(() -> new WorkflowException("No task found awaiting information for this request."));
+
+        WorkflowStatus previousStatus = instance.getStatus();
+        WorkflowStatus newStatus = statusForRole(task.getStep().getAssignedRole());
+
+        task.setStatus(TaskStatus.PENDING);
+        workflowTaskRepository.save(task);
+
+        instance.setStatus(newStatus);
+        instance.touch();
+        workflowInstanceRepository.save(instance);
+
+        recordHistory(instance, "Additional information provided", actor,
+                previousStatus, newStatus, comment);
+
+        publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.INFO_PROVIDED,
+                instance, task, actor, comment);
     }
 
     /**
@@ -166,11 +211,12 @@ public class WorkflowEngine {
         // Close out the open task (if any) so it drops off its assignee's
         // pending-approvals inbox. There is at most one PENDING task per
         // instance in this single-step-at-a-time engine.
+        java.util.concurrent.atomic.AtomicReference<WorkflowTask> cancelledTask = new java.util.concurrent.atomic.AtomicReference<>();
         workflowTaskRepository.findByWorkflowInstanceAndStatus(instance, TaskStatus.PENDING)
                 .ifPresent(task -> {
                     task.setStatus(TaskStatus.CANCELLED);
                     task.setCompletedAt(Instant.now());
-                    workflowTaskRepository.save(task);
+                    cancelledTask.set(workflowTaskRepository.save(task));
                 });
 
         instance.setStatus(WorkflowStatus.CANCELLED);
@@ -179,6 +225,8 @@ public class WorkflowEngine {
         workflowInstanceRepository.save(instance);
 
         recordHistory(instance, "Request cancelled", actor, previousStatus, WorkflowStatus.CANCELLED, null);
+        publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType.CANCELLED,
+                instance, cancelledTask.get(), actor, null);
     }
 
     /** A terminal instance can no longer be advanced, decided on, or cancelled. */
@@ -190,11 +238,11 @@ public class WorkflowEngine {
     }
 
     /** Creates the WorkflowTask for `step`, resolves its assignee, and updates instance status/position. */
-    private void advanceToStep(WorkflowInstance instance, WorkflowStep step, User actor) {
+    private WorkflowTask advanceToStep(WorkflowInstance instance, WorkflowStep step, User actor) {
         User assignee = resolveAssignee(instance, step);
 
         WorkflowTask task = new WorkflowTask(instance, step, assignee);
-        workflowTaskRepository.save(task);
+        task = workflowTaskRepository.save(task);
 
         WorkflowStatus previousStatus = instance.getStatus();
         WorkflowStatus newStatus = statusForRole(step.getAssignedRole());
@@ -206,14 +254,16 @@ public class WorkflowEngine {
 
         recordHistory(instance, "Assigned to " + step.getName() + " (" + assignee.getUsername() + ")",
                 actor, previousStatus, newStatus, null);
+
+        return task;
     }
 
     /**
      * ROLE_MANAGER resolves to the requester's own reporting manager
-     * (User.managerId). The Finance step of a budget workflow resolves to
-     * that reporting manager's saved Finance Manager; this makes the
-     * delegation explicit and stable for the team. Other roles resolve to
-     * the first enabled user holding the requested role.
+     * (User.managerId). The Finance step resolves to that reporting manager's
+     * saved Finance Manager; this makes delegation explicit and stable.
+     * Generic engine rule: applies to any workflow definition requiring Finance.
+     * Other roles resolve to the first enabled user holding the requested role.
      */
     private User resolveAssignee(WorkflowInstance instance, WorkflowStep step) {
         ERole role = step.getAssignedRole();
@@ -221,12 +271,11 @@ public class WorkflowEngine {
             throw new WorkflowException("Step '" + step.getName() + "' has no assigned role configured.");
         }
 
-        if (role == ERole.ROLE_FINANCE
-                && "BUDGET_REQUEST".equals(instance.getWorkflowDefinition().getWorkflowType())) {
+        if (role == ERole.ROLE_FINANCE || role == ERole.ROLE_FINANCE_MANAGER) {
             User manager = reportingManagerFor(instance);
             Long financeManagerId = manager.getFinanceManagerId();
             if (financeManagerId == null) {
-                throw new WorkflowException("Cannot route this budget request: manager " + manager.getUsername()
+                throw new WorkflowException("Cannot route to Finance: manager " + manager.getUsername()
                         + " has not selected a Finance Manager yet.");
             }
             User financeManager = userRepository.findById(financeManagerId)
@@ -297,5 +346,13 @@ public class WorkflowEngine {
                                 WorkflowStatus oldStatus, WorkflowStatus newStatus, String comment) {
         workflowHistoryRepository.save(
                 new WorkflowHistory(instance, action, performedBy, oldStatus, newStatus, comment));
+    }
+
+    private void publishEvent(com.example.authapp.workflow.event.WorkflowEvent.EventType type,
+                              WorkflowInstance instance, WorkflowTask task, User actor, String comment) {
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(
+                    new com.example.authapp.workflow.event.WorkflowEvent(type, instance, task, actor, comment));
+        }
     }
 }

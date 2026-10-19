@@ -15,9 +15,24 @@ import java.util.stream.Collectors;
 @Service
 public class WorkflowAdminService {
     private final WorkflowDefinitionRepository definitionRepository;
+    private final com.example.authapp.repository.WorkflowInstanceRepository workflowInstanceRepository;
+
+    private static final Set<WorkflowStatus> TERMINAL_STATUSES = Set.of(
+            WorkflowStatus.APPROVED,
+            WorkflowStatus.REJECTED,
+            WorkflowStatus.CANCELLED,
+            WorkflowStatus.COMPLETED
+    );
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public WorkflowAdminService(WorkflowDefinitionRepository definitionRepository,
+                                com.example.authapp.repository.WorkflowInstanceRepository workflowInstanceRepository) {
+        this.definitionRepository = definitionRepository;
+        this.workflowInstanceRepository = workflowInstanceRepository;
+    }
 
     public WorkflowAdminService(WorkflowDefinitionRepository definitionRepository) {
-        this.definitionRepository = definitionRepository;
+        this(definitionRepository, null);
     }
 
     @Transactional(readOnly = true)
@@ -48,8 +63,11 @@ public class WorkflowAdminService {
         String type = normalizeType(dto.getWorkflowType());
         ensureTypeAvailable(type, null);
         if (dto.getName() == null || dto.getName().isBlank()) throw new WorkflowException("Workflow name is required.");
+        int nextVersion = definitionRepository.findByWorkflowTypeOrderByVersionDesc(type).stream()
+                .mapToInt(WorkflowDefinition::getVersion).max().orElse(0) + 1;
         WorkflowDefinition definition = new WorkflowDefinition(
                 clean(dto.getName()), dto.getDescription(), type);
+        definition.setVersion(nextVersion);
         definition.setActive(false);
         if (dto.getSteps() != null) {
             replaceSteps(definition, dto.getSteps());
@@ -57,6 +75,7 @@ public class WorkflowAdminService {
         definition = definitionRepository.save(definition);
         if (Boolean.TRUE.equals(dto.getActive())) {
             validateForActivation(definition);
+            deactivateOtherVersions(type, definition.getId());
             definition.setActive(true);
             definition = definitionRepository.save(definition);
         }
@@ -67,8 +86,37 @@ public class WorkflowAdminService {
     public WorkflowDefinitionResponseDTO update(Long id, WorkflowDefinitionRequestDTO dto) {
         WorkflowDefinition definition = find(id);
         String type = normalizeType(dto.getWorkflowType());
-        ensureTypeAvailable(type, id);
+        if (!type.equalsIgnoreCase(definition.getWorkflowType())) {
+            ensureTypeAvailable(type, id);
+        }
         if (dto.getName() == null || dto.getName().isBlank()) throw new WorkflowException("Workflow name is required.");
+
+        if (hasActiveInstances(definition)) {
+            // Safe versioning: fork a new version so running in-progress instances are never corrupted
+            int nextVersion = definitionRepository.findByWorkflowTypeOrderByVersionDesc(type).stream()
+                    .mapToInt(WorkflowDefinition::getVersion).max().orElse(definition.getVersion()) + 1;
+            definition.setActive(false);
+            definitionRepository.save(definition);
+
+            WorkflowDefinition newVersion = new WorkflowDefinition(clean(dto.getName()), dto.getDescription(), type);
+            newVersion.setVersion(nextVersion);
+            newVersion.setActive(false);
+            if (dto.getSteps() != null) {
+                replaceSteps(newVersion, dto.getSteps());
+            } else {
+                copySteps(definition, newVersion);
+            }
+            newVersion = definitionRepository.save(newVersion);
+            if (dto.getActive() == null || dto.getActive()) {
+                validateForActivation(newVersion);
+                deactivateOtherVersions(type, newVersion.getId());
+                newVersion.setActive(true);
+                newVersion = definitionRepository.save(newVersion);
+            }
+            return WorkflowDefinitionResponseDTO.from(newVersion);
+        }
+
+        // In-place update when no active instances exist
         definition.setName(clean(dto.getName()));
         definition.setDescription(dto.getDescription());
         definition.setWorkflowType(type);
@@ -76,7 +124,10 @@ public class WorkflowAdminService {
             replaceSteps(definition, dto.getSteps());
         }
         if (dto.getActive() != null) {
-            if (dto.getActive()) validateForActivation(definition);
+            if (dto.getActive()) {
+                validateForActivation(definition);
+                deactivateOtherVersions(type, definition.getId());
+            }
             definition.setActive(dto.getActive());
         }
         return WorkflowDefinitionResponseDTO.from(definitionRepository.save(definition));
@@ -101,13 +152,14 @@ public class WorkflowAdminService {
     public WorkflowDefinitionResponseDTO activate(Long id) {
         WorkflowDefinition definition = find(id);
         validateForActivation(definition);
+        deactivateOtherVersions(definition.getWorkflowType(), definition.getId());
         definition.setActive(true);
         return WorkflowDefinitionResponseDTO.from(definitionRepository.save(definition));
     }
 
     @Transactional
     public WorkflowStepResponseDTO addStep(Long workflowId, WorkflowStepRequestDTO dto) {
-        WorkflowDefinition definition = find(workflowId);
+        WorkflowDefinition definition = prepareForStepMutation(workflowId);
         WorkflowStep step = toStep(definition, dto, nextOrder(definition));
         definition.getSteps().add(step);
         validateOrdering(definition);
@@ -118,7 +170,7 @@ public class WorkflowAdminService {
 
     @Transactional
     public WorkflowStepResponseDTO updateStep(Long workflowId, Long stepId, WorkflowStepRequestDTO dto) {
-        WorkflowDefinition definition = find(workflowId);
+        WorkflowDefinition definition = prepareForStepMutation(workflowId);
         WorkflowStep step = findStep(definition, stepId);
         step.setName(clean(dto.getName()));
         step.setStepType(parseStepType(dto.getStepType()));
@@ -135,7 +187,7 @@ public class WorkflowAdminService {
 
     @Transactional
     public void deleteStep(Long workflowId, Long stepId) {
-        WorkflowDefinition definition = find(workflowId);
+        WorkflowDefinition definition = prepareForStepMutation(workflowId);
         WorkflowStep step = findStep(definition, stepId);
         definition.getSteps().remove(step);
         // Keep drafts usable after deletion and avoid leaving a gap in order.
@@ -146,7 +198,7 @@ public class WorkflowAdminService {
 
     @Transactional
     public WorkflowDefinitionResponseDTO reorder(Long workflowId, WorkflowReorderDTO dto) {
-        WorkflowDefinition definition = find(workflowId);
+        WorkflowDefinition definition = prepareForStepMutation(workflowId);
         List<WorkflowStep> steps = definition.getSteps();
         if (steps.stream().anyMatch(step -> step.getId() == null)) {
             throw new WorkflowException("Workflow steps must be saved before they can be reordered.");
@@ -165,6 +217,7 @@ public class WorkflowAdminService {
         if (definition.isActive()) validateForActivation(definition);
         return WorkflowDefinitionResponseDTO.from(definitionRepository.save(definition));
     }
+
 
     @Transactional(readOnly = true)
     public List<WorkflowDefinitionResponseDTO> activeCatalog() {
@@ -264,6 +317,60 @@ public class WorkflowAdminService {
             String normalized = clean(value).toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
             if (!normalized.startsWith("ROLE_")) normalized = "ROLE_" + normalized;
             return ERole.valueOf(normalized);
-        } catch (Exception ex) { throw new WorkflowException("Unknown assigned role '" + value + "'."); }
+        } catch (Exception ex) {
+            throw new WorkflowException("Unknown assigned role '" + value + "'.");
+        }
+    }
+
+    private boolean hasActiveInstances(WorkflowDefinition definition) {
+        if (workflowInstanceRepository == null || definition.getId() == null) {
+            return false;
+        }
+        return workflowInstanceRepository.existsByWorkflowDefinitionAndStatusNotIn(definition, TERMINAL_STATUSES);
+    }
+
+    private WorkflowDefinition prepareForStepMutation(Long workflowId) {
+        WorkflowDefinition definition = find(workflowId);
+        if (hasActiveInstances(definition)) {
+            return forkNewVersion(definition);
+        }
+        return definition;
+    }
+
+    private WorkflowDefinition forkNewVersion(WorkflowDefinition oldDef) {
+        int nextVersion = definitionRepository.findByWorkflowTypeOrderByVersionDesc(oldDef.getWorkflowType()).stream()
+                .mapToInt(WorkflowDefinition::getVersion).max().orElse(oldDef.getVersion()) + 1;
+        oldDef.setActive(false);
+        definitionRepository.save(oldDef);
+
+        WorkflowDefinition newDef = new WorkflowDefinition(oldDef.getName(), oldDef.getDescription(), oldDef.getWorkflowType());
+        newDef.setVersion(nextVersion);
+        newDef.setActive(true);
+        copySteps(oldDef, newDef);
+        return definitionRepository.save(newDef);
+    }
+
+    private void copySteps(WorkflowDefinition source, WorkflowDefinition target) {
+        target.getSteps().clear();
+        for (WorkflowStep s : source.getOrderedSteps()) {
+            WorkflowStep copy = new WorkflowStep();
+            copy.setWorkflowDefinition(target);
+            copy.setName(s.getName());
+            copy.setStepOrder(s.getStepOrder());
+            copy.setStepType(s.getStepType());
+            copy.setAssignedRole(s.getAssignedRole());
+            copy.setRequired(s.isRequired());
+            copy.setConfiguration(s.getConfiguration());
+            target.getSteps().add(copy);
+        }
+    }
+
+    private void deactivateOtherVersions(String type, Long keepActiveId) {
+        definitionRepository.findByWorkflowTypeAndActiveTrue(type)
+                .filter(other -> !Objects.equals(other.getId(), keepActiveId))
+                .ifPresent(other -> {
+                    other.setActive(false);
+                    definitionRepository.save(other);
+                });
     }
 }

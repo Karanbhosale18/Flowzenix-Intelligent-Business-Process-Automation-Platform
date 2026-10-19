@@ -13,6 +13,8 @@ export default function RequestDetail() {
   const [comment, setComment] = useState('')
   const [acting, setActing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [providingInfo, setProvidingInfo] = useState(false)
+  const [infoResponse, setInfoResponse] = useState('')
   const [actionError, setActionError] = useState('')
 
   function load() {
@@ -41,6 +43,21 @@ export default function RequestDetail() {
       setActionError(err.response?.data?.message || 'Could not record your decision.')
     } finally {
       setActing(false)
+    }
+  }
+
+  async function handleProvideInfo() {
+    if (!infoResponse.trim()) return
+    setProvidingInfo(true)
+    setActionError('')
+    try {
+      await RequestService.provideInformation(id, { comment: infoResponse.trim() })
+      setInfoResponse('')
+      load()
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Could not submit information.')
+    } finally {
+      setProvidingInfo(false)
     }
   }
 
@@ -136,6 +153,37 @@ export default function RequestDetail() {
               </div>
             </div>
           )}
+
+          {detail.status === 'PENDING_INFORMATION' && !detail.myPendingTaskId && (
+            <div className="card action-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+              <p className="action-title" style={{ color: '#d97706' }}>Additional Information Requested</p>
+              {(() => {
+                const infoReq = [...detail.history].reverse().find(h => h.newStatus === 'PENDING_INFORMATION');
+                return infoReq?.comment ? (
+                  <p style={{ margin: '8px 0 12px', fontSize: 14, color: 'var(--text-muted)' }}>
+                    <strong>{infoReq.performedBy}:</strong> "{infoReq.comment}"
+                  </p>
+                ) : null;
+              })()}
+              <textarea
+                className="field-input action-comment"
+                rows={3}
+                placeholder="Provide the requested information here..."
+                value={infoResponse}
+                onChange={(e) => setInfoResponse(e.target.value)}
+              />
+              <div className="action-buttons">
+                <button
+                  className="btn btn-primary"
+                  disabled={providingInfo || !infoResponse.trim()}
+                  onClick={handleProvideInfo}
+                >
+                  {providingInfo ? 'Submitting…' : 'Submit Information & Resume Workflow'}
+                </button>
+              </div>
+            </div>
+          )}
+
 
           <div className="card">
             <p className="section-title">Activity</p>

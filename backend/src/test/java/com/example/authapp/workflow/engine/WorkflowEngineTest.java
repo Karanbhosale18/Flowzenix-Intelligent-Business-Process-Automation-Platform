@@ -332,6 +332,89 @@ class WorkflowEngineTest {
     }
 
     // ---------------------------------------------------------------------
+    // provideInformation() — resume parked workflow
+    // ---------------------------------------------------------------------
+
+    @Test
+    @DisplayName("provideInformation(): resumes parked workflow back to pending approval")
+    void provideInformationResumesWorkflow() {
+        User employee = employee(1L, "karan");
+        User manager = manager(2L, "meena");
+        WorkflowDefinition def = leaveDefinition();
+        WorkflowInstance instance = instanceAt(def, employee, WorkflowStatus.PENDING_INFORMATION, 1);
+        WorkflowTask task = pendingTask(instance, def.getOrderedSteps().get(0), manager);
+        task.setStatus(TaskStatus.INFO_REQUESTED);
+
+        when(workflowTaskRepository.findByWorkflowInstanceAndStatus(instance, TaskStatus.INFO_REQUESTED))
+                .thenReturn(Optional.of(task));
+
+        engine.provideInformation(instance, employee, "Medical certificate attached");
+
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.PENDING);
+        assertThat(instance.getStatus()).isEqualTo(WorkflowStatus.PENDING_MANAGER_APPROVAL);
+        verify(workflowTaskRepository).save(task);
+        verify(workflowInstanceRepository).save(instance);
+
+        ArgumentCaptor<WorkflowHistory> historyCaptor = ArgumentCaptor.forClass(WorkflowHistory.class);
+        verify(workflowHistoryRepository).save(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().getAction()).contains("Additional information provided");
+        assertThat(historyCaptor.getValue().getComment()).isEqualTo("Medical certificate attached");
+    }
+
+    @Test
+    @DisplayName("provideInformation(): throws when request is not in PENDING_INFORMATION")
+    void provideInformationOnNonPendingThrows() {
+        User employee = employee(1L, "karan");
+        WorkflowDefinition def = leaveDefinition();
+        WorkflowInstance instance = instanceAt(def, employee, WorkflowStatus.PENDING_MANAGER_APPROVAL, 1);
+
+        assertThatThrownBy(() -> engine.provideInformation(instance, employee, "info"))
+                .isInstanceOf(WorkflowException.class)
+                .hasMessageContaining("PENDING_MANAGER_APPROVAL");
+    }
+
+    // ---------------------------------------------------------------------
+    // Generic Engine Routing — acceptance criterion
+    // ---------------------------------------------------------------------
+
+    @Test
+    @DisplayName("generic routing: new workflow definition with Finance step routes via manager's Finance delegation without request-type checks")
+    void genericFinanceRoutingWorksForAnyWorkflowType() {
+        User employee = employee(1L, "karan");
+        employee.setManagerId(2L);
+        User manager = manager(2L, "meena");
+        manager.setFinanceManagerId(3L);
+        User finance = withRole(3L, "fatima", ERole.ROLE_FINANCE, ERole.ROLE_FINANCE_MANAGER);
+
+        // A brand new workflow type that the engine has never seen before
+        WorkflowDefinition procurement = new WorkflowDefinition(
+                "Procurement Order", "Generic multi-step order.", "PROCUREMENT_ORDER");
+        procurement.getSteps().add(new WorkflowStep(procurement, 1, "Manager Review",
+                StepType.APPROVAL, ERole.ROLE_MANAGER, true));
+        procurement.getSteps().add(new WorkflowStep(procurement, 2, "Finance Signoff",
+                StepType.APPROVAL, ERole.ROLE_FINANCE, true));
+
+        WorkflowInstance instance = instanceAt(procurement, employee, WorkflowStatus.PENDING_MANAGER_APPROVAL, 1);
+        WorkflowTask step1Task = pendingTask(instance, procurement.getOrderedSteps().get(0), manager);
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(manager));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(finance));
+
+        // Approving step 1 advances to step 2 (Finance Signoff)
+        engine.decide(step1Task, ApprovalDecision.APPROVED, manager, "Looks good");
+
+        assertThat(instance.getStatus()).isEqualTo(WorkflowStatus.PENDING_FINANCE_APPROVAL);
+        assertThat(instance.getCurrentStep()).isEqualTo(2);
+
+        ArgumentCaptor<WorkflowTask> taskCaptor = ArgumentCaptor.forClass(WorkflowTask.class);
+        verify(workflowTaskRepository, times(2)).save(taskCaptor.capture());
+        WorkflowTask financeTask = taskCaptor.getAllValues().get(1);
+        assertThat(financeTask.getAssignedTo()).isSameAs(finance);
+        assertThat(financeTask.getStep().getName()).isEqualTo("Finance Signoff");
+    }
+
+
+    // ---------------------------------------------------------------------
     // Fixtures
     // ---------------------------------------------------------------------
 

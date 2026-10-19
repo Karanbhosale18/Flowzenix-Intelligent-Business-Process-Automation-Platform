@@ -21,6 +21,11 @@ const RequestService = {
     const response = await api.post(`/requests/${id}/cancel`)
     return response.data
   },
+
+  async provideInformation(id, data) {
+    const response = await api.post(`/requests/${id}/provide-information`, data)
+    return response.data
+  },
 }
 
 export default RequestService

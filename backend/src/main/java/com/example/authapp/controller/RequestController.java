@@ -58,6 +58,14 @@ public class RequestController {
         return ResponseEntity.ok(new MessageResponse("Request cancelled."));
     }
 
+    @PostMapping("/{id}/provide-information")
+    public ResponseEntity<RequestDetailDTO> provideInformation(
+            @PathVariable Long id,
+            @RequestBody(required = false) com.example.authapp.dto.ProvideInformationDTO dto,
+            @AuthenticationPrincipal UserDetailsImpl principal) {
+        return ResponseEntity.ok(requestService.provideInformation(id, currentUser(principal), dto));
+    }
+
     private User currentUser(UserDetailsImpl principal) {
         return userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists."));
