@@ -18,13 +18,6 @@ const AuthService = {
     return response.data
   },
 
-  async signup({ username, email, password, department }) {
-    const payload = { username, email, password }
-    if (department && department.trim()) payload.department = department.trim()
-    const response = await api.post('/auth/signup', payload)
-    return response.data
-  },
-
   logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')

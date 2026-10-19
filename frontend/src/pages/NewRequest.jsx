@@ -452,7 +452,7 @@ export default function NewRequest() {
         <aside className="card new-request-preview">
           <p className="preview-eyebrow">Your manager</p>
           <p className="preview-manager">
-            {profile === null ? 'Loading manager…' : profile.managerName ? `${profile.managerName} (ID: ${profile.managerId})` : 'No manager assigned — update your profile before submitting a request.'}
+            {profile === null ? 'Loading manager…' : profile.managerName ? `${profile.managerName} (ID: ${profile.managerId})` : 'No manager assigned — please ask an administrator to assign a reporting manager before submitting.'}
           </p>
           <p className="preview-eyebrow">What happens next</p>
           {requestType ? (

@@ -1,99 +1,88 @@
 package com.example.authapp.controller;
 
-import com.example.authapp.entity.ERole;
-import com.example.authapp.entity.User;
+import com.example.authapp.payload.request.LoginRequest;
 import com.example.authapp.payload.request.SignupRequest;
+import com.example.authapp.payload.response.JwtResponse;
 import com.example.authapp.payload.response.MessageResponse;
-import com.example.authapp.repository.UserRepository;
+import com.example.authapp.security.jwt.JwtUtils;
+import com.example.authapp.security.services.UserDetailsImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Set;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
     @Mock
-    private UserRepository userRepository;
+    private AuthenticationManager authenticationManager;
 
     @Mock
-    private PasswordEncoder encoder;
+    private JwtUtils jwtUtils;
 
     @InjectMocks
     private AuthController authController;
 
     @Test
-    @DisplayName("public registration strictly assigns ROLE_EMPLOYEE and ignores privileged role inputs")
-    void publicSignupAlwaysAssignsEmployeeRole() {
-        SignupRequest request = new SignupRequest();
-        request.setUsername("sneaky.user");
-        request.setEmail("sneaky@test.com");
-        request.setPassword("password123");
-        request.setRole(Set.of("ADMIN", "MANAGER"));
-        request.setDepartment("Marketing");
-
-        when(userRepository.existsByUsername("sneaky.user")).thenReturn(false);
-        when(userRepository.existsByEmail("sneaky@test.com")).thenReturn(false);
-        when(encoder.encode(anyString())).thenReturn("hashed-password");
-
-        ResponseEntity<?> response = authController.registerUser(request);
-
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(((MessageResponse) response.getBody()).getMessage()).contains("successfully");
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        User saved = userCaptor.getValue();
-
-        assertThat(saved.getRoles()).containsExactly(ERole.ROLE_EMPLOYEE);
-        assertThat(saved.getRoles()).doesNotContain(ERole.ROLE_ADMIN);
-        assertThat(saved.getDepartment()).isEqualTo("Marketing");
-        assertThat(saved.getAdminReferenceId()).isNull();
-        assertThat(saved.getManagerReferenceId()).isNull();
-    }
-
-    @Test
-    @DisplayName("public registration rejects duplicate username")
-    void publicSignupRejectsDuplicateUsername() {
-        SignupRequest request = new SignupRequest();
-        request.setUsername("existing.user");
-        request.setEmail("new@test.com");
-        request.setPassword("password123");
-
-        when(userRepository.existsByUsername("existing.user")).thenReturn(true);
-
-        ResponseEntity<?> response = authController.registerUser(request);
-
-        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        assertThat(((MessageResponse) response.getBody()).getMessage()).contains("Username is already taken");
-    }
-
-    @Test
-    @DisplayName("public registration rejects duplicate email")
-    void publicSignupRejectsDuplicateEmail() {
+    @DisplayName("public registration is disabled and returns 403 FORBIDDEN")
+    void publicRegistrationIsDisabled() {
         SignupRequest request = new SignupRequest();
         request.setUsername("new.user");
-        request.setEmail("existing@test.com");
+        request.setEmail("user@test.com");
         request.setPassword("password123");
-
-        when(userRepository.existsByUsername("new.user")).thenReturn(false);
-        when(userRepository.existsByEmail("existing@test.com")).thenReturn(true);
 
         ResponseEntity<?> response = authController.registerUser(request);
 
-        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        assertThat(((MessageResponse) response.getBody()).getMessage()).contains("Email is already in use");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isInstanceOf(MessageResponse.class);
+        MessageResponse message = (MessageResponse) response.getBody();
+        assertThat(message.getMessage()).isEqualTo("Public registration is disabled. User accounts are created by administrators.");
+    }
+
+    @Test
+    @DisplayName("authenticateUser successfully authenticates and returns JWT token with user details")
+    void authenticateUserSuccess() {
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("testadmin");
+        loginRequest.setPassword("securePassword123");
+
+        UserDetailsImpl principal = new UserDetailsImpl(
+                1L,
+                "testadmin",
+                "admin@flowzenix.com",
+                "hashed",
+                true,
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(principal);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
+        when(jwtUtils.generateJwtToken(auth)).thenReturn("mock-jwt-token-xyz");
+
+        ResponseEntity<?> response = authController.authenticateUser(loginRequest);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isInstanceOf(JwtResponse.class);
+        JwtResponse jwtResponse = (JwtResponse) response.getBody();
+        assertThat(jwtResponse.getToken()).isEqualTo("mock-jwt-token-xyz");
+        assertThat(jwtResponse.getUsername()).isEqualTo("testadmin");
+        assertThat(jwtResponse.getEmail()).isEqualTo("admin@flowzenix.com");
+        assertThat(jwtResponse.getRoles()).containsExactly("ROLE_ADMIN");
     }
 }

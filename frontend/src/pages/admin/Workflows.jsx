@@ -10,6 +10,7 @@ export default function Workflows() {
   const navigate = useNavigate()
   const [workflows, setWorkflows] = useState(null)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const user = AuthService.getCurrentUser()
 
   useEffect(() => {
@@ -22,14 +23,29 @@ export default function Workflows() {
   }
 
   async function toggle(workflow) {
+    setError('')
+    setSuccessMessage('')
     try {
       const updated = workflow.active ? await WorkflowService.deactivate(workflow.id) : await WorkflowService.activate(workflow.id)
       setWorkflows((items) => items.map((item) => item.id === updated.id ? updated : item))
+      setSuccessMessage(`Workflow '${workflow.name}' is now ${updated.active ? 'active' : 'deactivated'}.`)
     } catch (err) { setError(err.response?.data?.message || 'Could not change workflow status.') }
   }
 
   return (
     <AppShell title="Workflow management" actions={<Link to="/admin/workflows/new" className="btn btn-primary">Create workflow</Link>}>
+      {successMessage && (
+        <div className="banner banner--success" style={{ marginBottom: 16 }}>
+          {successMessage}
+          <button
+            type="button"
+            onClick={() => setSuccessMessage('')}
+            style={{ float: 'right', background: 'none', border: 0, color: 'inherit', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {error && <div className="banner banner--error" role="alert">{error}</div>}
       <div className="workflow-list card">
         <div className="workflow-list-heading"><div><p className="section-title">Definitions</p><p className="field-hint">Configure the approval routes available to your team.</p></div><span className="workflow-count">{workflows?.length ?? '—'} total</span></div>

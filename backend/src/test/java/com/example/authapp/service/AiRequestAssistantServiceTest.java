@@ -50,12 +50,12 @@ class AiRequestAssistantServiceTest {
     @Test
     @DisplayName("flags missing amount when budget request omits cost")
     void flagsMissingBudgetAmount() {
-        String prompt = "Need to purchase additional developer laptops for Engineering team.";
+        String prompt = "Need to purchase additional developer laptops for Research & Development team.";
         AiRequestParseResponseDTO dto = aiService.parseRequest(prompt);
 
         assertThat(dto.getRequestType()).isEqualTo("BUDGET_REQUEST");
         assertThat(dto.getMissingFields()).contains("amount");
-        assertThat(dto.getExtractedData().get("department")).isEqualTo("Engineering");
+        assertThat(dto.getExtractedData().get("department")).isEqualTo("Research & Development");
     }
 
     @Test

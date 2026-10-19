@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login.jsx'
-import Signup from './pages/Signup.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import NewRequest from './pages/NewRequest.jsx'
 import MyRequests from './pages/MyRequests.jsx'
@@ -19,7 +18,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/signup" element={<Navigate to="/login" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/requests/new" element={<ProtectedRoute><NewRequest /></ProtectedRoute>} />
         <Route path="/requests" element={<ProtectedRoute><MyRequests /></ProtectedRoute>} />

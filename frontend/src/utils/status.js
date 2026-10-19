@@ -46,7 +46,7 @@ export const REQUEST_TYPES = [
     value: 'BUDGET_REQUEST',
     label: 'Budget Request',
     fields: [
-      { key: 'amount', label: 'Amount (\u20b9)', type: 'number', required: true },
+      { key: 'amount', label: 'Amount ($)', type: 'number', required: true },
       { key: 'purpose', label: 'Purpose', type: 'text', required: true },
       { key: 'department', label: 'Department', type: 'text', required: false },
     ],

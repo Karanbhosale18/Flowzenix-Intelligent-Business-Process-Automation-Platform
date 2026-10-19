@@ -1,6 +1,7 @@
 package com.example.authapp.controller;
 
 import com.example.authapp.dto.FinanceManagerAssignmentDTO;
+import com.example.authapp.dto.FinanceManagerOptionDTO;
 import com.example.authapp.entity.ERole;
 import com.example.authapp.entity.User;
 import com.example.authapp.exception.WorkflowException;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /** Lets a reporting manager choose the Finance Manager for their team's budgets. */
 @RestController
@@ -34,6 +37,26 @@ public class ManagerFinanceController {
         return toDto(manager);
     }
 
+    @GetMapping("/options")
+    public List<FinanceManagerOptionDTO> getOptions(@AuthenticationPrincipal UserDetailsImpl principal) {
+        currentManager(principal);
+        List<User> list = userRepository.findByRoleOrderByIdAsc(ERole.ROLE_FINANCE_MANAGER);
+        if (list.isEmpty()) {
+            list = userRepository.findByRoleOrderByIdAsc(ERole.ROLE_FINANCE);
+        }
+        if (list.isEmpty()) {
+            list = userRepository.findByRoleOrderByIdAsc(ERole.ROLE_MANAGER);
+        }
+        return list.stream()
+                .filter(User::isEnabled)
+                .map(u -> new FinanceManagerOptionDTO(
+                        u.getFinanceManagerReferenceId() != null ? u.getFinanceManagerReferenceId() : (u.getManagerReferenceId() != null ? u.getManagerReferenceId() : u.getId()),
+                        u.getUsername(),
+                        u.getDepartment() != null ? u.getDepartment() : "Finance & Accounting"
+                ))
+                .toList();
+    }
+
     @PutMapping
     public ResponseEntity<FinanceManagerAssignmentDTO> update(
             @Valid @RequestBody FinanceManagerAssignmentRequest request,
@@ -43,9 +66,17 @@ public class ManagerFinanceController {
                 // Finance Managers created before Finance Manager IDs were introduced
                 // used Manager ID. Keep those accounts selectable during the transition.
                 .or(() -> userRepository.findByManagerReferenceId(request.getFinanceManagerId()))
+                .or(() -> userRepository.findById(request.getFinanceManagerId()))
                 .orElseThrow(() -> new WorkflowException("Finance Manager ID " + request.getFinanceManagerId() + " was not found."));
 
-        if (!financeManager.isEnabled() || !financeManager.getRoles().contains(ERole.ROLE_FINANCE_MANAGER)) {
+        boolean isEligible = financeManager.isEnabled() && (
+                financeManager.getRoles().contains(ERole.ROLE_FINANCE_MANAGER) ||
+                financeManager.getRoles().contains(ERole.ROLE_FINANCE) ||
+                financeManager.getRoles().contains(ERole.ROLE_MANAGER) ||
+                financeManager.getRoles().contains(ERole.ROLE_ADMIN)
+        );
+
+        if (!isEligible) {
             throw new WorkflowException("User ID " + request.getFinanceManagerId() + " is not an active Finance Manager.");
         }
 

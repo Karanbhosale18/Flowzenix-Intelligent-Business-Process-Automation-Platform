@@ -14,6 +14,7 @@ export default function AppShell({ children, title, actions }) {
   const navigate = useNavigate()
   const user = AuthService.getCurrentUser()
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -30,9 +31,31 @@ export default function AppShell({ children, title, actions }) {
     setTheme(nextTheme)
   }
 
+  function closeMobileNav() {
+    setMobileNavOpen(false)
+  }
+
   return (
     <div className="shell">
-      <aside className="shell-sidebar">
+      {/* Mobile Top Header */}
+      <div className="shell-mobile-header">
+        <div className="shell-brand" style={{ padding: 0 }}>
+          <span className="shell-brand-dot" />
+          Flowzenix
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            className="shell-mobile-toggle"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileNavOpen ? '✕' : '☰'}
+          </button>
+        </div>
+      </div>
+
+      <aside className={`shell-sidebar ${mobileNavOpen ? 'shell-sidebar--mobile-open' : ''}`}>
         <div className="shell-brand">
           <span className="shell-brand-dot" />
           Flowzenix
@@ -43,23 +66,28 @@ export default function AppShell({ children, title, actions }) {
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={closeMobileNav}
               className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}
             >
               <span className="shell-nav-icon" aria-hidden="true">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
-          <NavLink to="/profile" className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
+          <NavLink to="/profile" onClick={closeMobileNav} className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
             <span className="shell-nav-icon" aria-hidden="true">◉</span>
             My profile
           </NavLink>
           {(user?.roles || []).includes('ROLE_ADMIN') && (
             <>
-              <NavLink to="/admin" end className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
+              <NavLink to="/admin" end onClick={closeMobileNav} className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
                 <span className="shell-nav-icon" aria-hidden="true">⚙</span>
                 Admin
               </NavLink>
-              <NavLink to="/admin/users" className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
+              <NavLink to="/admin/workflows" onClick={closeMobileNav} className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
+                <span className="shell-nav-icon" aria-hidden="true">🔀</span>
+                Workflows
+              </NavLink>
+              <NavLink to="/admin/users" onClick={closeMobileNav} className={({ isActive }) => `shell-nav-link${isActive ? ' shell-nav-link--active' : ''}`}>
                 <span className="shell-nav-icon" aria-hidden="true">👥</span>
                 Users
               </NavLink>

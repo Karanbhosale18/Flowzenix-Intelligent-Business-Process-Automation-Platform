@@ -1,3 +1,33 @@
+.myrequests-filter-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+.myrequests-filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .myrequests-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.myrequests-filter-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.myrequests-count {
+  font-family: var(--font-mono);
+}
+
 .requests-table-card { padding: 0; overflow: hidden; }
 
 .requests-table {

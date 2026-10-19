@@ -14,6 +14,7 @@ export default function Dashboard() {
 
   const [taskHistory, setTaskHistory] = useState(null)
   const [financeManager, setFinanceManager] = useState(null)
+  const [financeOptions, setFinanceOptions] = useState([])
   const [financeManagerId, setFinanceManagerId] = useState('')
   const [financeManagerMessage, setFinanceManagerMessage] = useState('')
   const [financeManagerError, setFinanceManagerError] = useState('')
@@ -29,8 +30,12 @@ export default function Dashboard() {
     if (isManager) {
       ManagerFinanceService.getAssignment().then((assignment) => {
         setFinanceManager(assignment)
-        setFinanceManagerId(assignment.financeManagerId || '')
+        setFinanceManagerId(assignment.financeManagerId ? String(assignment.financeManagerId) : '')
       }).catch(() => setFinanceManagerError('Could not load your Finance Manager assignment.'))
+
+      ManagerFinanceService.getOptions().then((opts) => {
+        setFinanceOptions(opts || [])
+      }).catch(() => {})
     }
   }, [])
 
@@ -82,12 +87,44 @@ export default function Dashboard() {
             <p className="field-hint">Choose the active Finance Manager who receives budget requests from your team after your approval. This selection stays in effect until you change it.</p>
           </div>
           <form className="finance-assignment-form" onSubmit={saveFinanceManager} noValidate>
-            <label className="field-label" htmlFor="financeManagerId">Finance Manager user ID</label>
+            <label className="field-label" htmlFor="financeManagerId">
+              {financeOptions.length > 0 ? 'Select Finance Manager' : 'Finance Manager user ID'}
+            </label>
             <div className="finance-assignment-controls">
-              <input id="financeManagerId" type="number" min="1" className="field-input" value={financeManagerId} onChange={(event) => setFinanceManagerId(event.target.value)} />
-              <button className="btn btn-primary" disabled={savingFinanceManager}>{savingFinanceManager ? 'Saving…' : 'Save'}</button>
+              {financeOptions.length > 0 ? (
+                <select
+                  id="financeManagerId"
+                  className="field-input"
+                  value={financeManagerId}
+                  onChange={(event) => setFinanceManagerId(event.target.value)}
+                >
+                  <option value="">Choose a Finance Manager…</option>
+                  {financeOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.username} ({opt.department})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="financeManagerId"
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 101"
+                  className="field-input"
+                  value={financeManagerId}
+                  onChange={(event) => setFinanceManagerId(event.target.value)}
+                />
+              )}
+              <button className="btn btn-primary" disabled={savingFinanceManager || !financeManagerId}>
+                {savingFinanceManager ? 'Saving…' : 'Save'}
+              </button>
             </div>
-            {financeManager?.financeManagerName && <p className="field-hint">Current Finance Manager: <strong>{financeManager.financeManagerName}</strong> (user ID: {financeManager.financeManagerId})</p>}
+            {financeManager?.financeManagerName && (
+              <p className="field-hint">
+                Current Finance Manager: <strong>{financeManager.financeManagerName}</strong> (ID: {financeManager.financeManagerId})
+              </p>
+            )}
             {financeManagerError && <p className="form-message form-message--error">{financeManagerError}</p>}
             {financeManagerMessage && <p className="form-message form-message--success">{financeManagerMessage}</p>}
           </form>

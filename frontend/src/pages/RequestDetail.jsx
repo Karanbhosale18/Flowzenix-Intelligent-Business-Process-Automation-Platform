@@ -10,12 +10,37 @@ export default function RequestDetail() {
   const { id } = useParams()
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState('')
+  const [actionSuccess, setActionSuccess] = useState('')
   const [comment, setComment] = useState('')
   const [acting, setActing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [providingInfo, setProvidingInfo] = useState(false)
   const [infoResponse, setInfoResponse] = useState('')
   const [actionError, setActionError] = useState('')
+
+  function formatMetaKey(key) {
+    const map = {
+      amount: 'Amount ($)',
+      startDate: 'Start Date',
+      endDate: 'End Date',
+      purpose: 'Purpose',
+      reason: 'Reason',
+      department: 'Department',
+      vendorName: 'Vendor Name',
+      invoiceNumber: 'Invoice Number',
+      totalAmount: 'Total Amount ($)',
+      days: 'Duration (Days)'
+    }
+    return map[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())
+  }
+
+  function formatMetaVal(key, val) {
+    if (val == null) return '—'
+    if ((key === 'amount' || key === 'totalAmount' || key === 'subtotal') && typeof val === 'number') {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)
+    }
+    return String(val)
+  }
 
   function load() {
     RequestService.getById(id)
@@ -33,10 +58,18 @@ export default function RequestDetail() {
     if (!detail?.myPendingTaskId) return
     setActing(true)
     setActionError('')
+    setActionSuccess('')
     try {
-      if (action === 'approve') await TaskService.approve(detail.myPendingTaskId, comment)
-      else if (action === 'reject') await TaskService.reject(detail.myPendingTaskId, comment)
-      else await TaskService.requestInformation(detail.myPendingTaskId, comment)
+      if (action === 'approve') {
+        await TaskService.approve(detail.myPendingTaskId, comment)
+        setActionSuccess('Request approved successfully.')
+      } else if (action === 'reject') {
+        await TaskService.reject(detail.myPendingTaskId, comment)
+        setActionSuccess('Request rejected.')
+      } else {
+        await TaskService.requestInformation(detail.myPendingTaskId, comment)
+        setActionSuccess('Additional information requested from requester.')
+      }
       setComment('')
       load()
     } catch (err) {
@@ -50,8 +83,10 @@ export default function RequestDetail() {
     if (!infoResponse.trim()) return
     setProvidingInfo(true)
     setActionError('')
+    setActionSuccess('')
     try {
       await RequestService.provideInformation(id, { comment: infoResponse.trim() })
+      setActionSuccess('Additional information submitted. Workflow has resumed.')
       setInfoResponse('')
       load()
     } catch (err) {
@@ -65,8 +100,10 @@ export default function RequestDetail() {
     if (!window.confirm('Are you sure you want to cancel this request?')) return
     setCancelling(true)
     setActionError('')
+    setActionSuccess('')
     try {
       await RequestService.cancel(id)
+      setActionSuccess('Request cancelled.')
       load()
     } catch (err) {
       setActionError(err.response?.data?.message || 'Could not cancel this request.')
@@ -97,6 +134,24 @@ export default function RequestDetail() {
 
   return (
     <AppShell title={detail.title}>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+        <Link to="/requests" className="btn btn-sm">← Back to requests</Link>
+        <Link to="/approvals" className="btn btn-sm">Approvals</Link>
+      </div>
+
+      {actionSuccess && (
+        <div className="banner banner--success" style={{ marginBottom: 16 }}>
+          {actionSuccess}
+          <button
+            type="button"
+            onClick={() => setActionSuccess('')}
+            style={{ float: 'right', background: 'none', border: 0, color: 'inherit', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="request-detail-layout">
         <div className="request-detail-main">
           <div className="card">
@@ -111,8 +166,8 @@ export default function RequestDetail() {
               <dl className="request-detail-meta">
                 {Object.entries(detail.metadata).map(([key, value]) => (
                   <div className="request-detail-meta-row" key={key}>
-                    <dt>{key}</dt>
-                    <dd>{String(value)}</dd>
+                    <dt>{formatMetaKey(key)}</dt>
+                    <dd>{formatMetaVal(key, value)}</dd>
                   </div>
                 ))}
               </dl>

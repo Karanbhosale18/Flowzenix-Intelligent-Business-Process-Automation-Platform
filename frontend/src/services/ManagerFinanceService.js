@@ -6,6 +6,11 @@ const ManagerFinanceService = {
     return response.data
   },
 
+  async getOptions() {
+    const response = await api.get('/manager/finance-manager/options')
+    return response.data
+  },
+
   async updateAssignment(financeManagerId) {
     const response = await api.put('/manager/finance-manager', { financeManagerId })
     return response.data

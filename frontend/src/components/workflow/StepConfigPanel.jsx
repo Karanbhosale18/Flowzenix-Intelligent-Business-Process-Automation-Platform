@@ -1,4 +1,4 @@
-const ROLES = ['ROLE_MANAGER', 'ROLE_FINANCE', 'ROLE_HR', 'ROLE_IT_ADMIN', 'ROLE_ADMIN', 'ROLE_EMPLOYEE']
+const ROLES = ['ROLE_MANAGER', 'ROLE_FINANCE_MANAGER', 'ROLE_FINANCE', 'ROLE_ADMIN', 'ROLE_EMPLOYEE', 'ROLE_HR', 'ROLE_IT_ADMIN']
 const TYPES = ['APPROVAL', 'ACTION', 'NOTIFICATION']
 
 export default function StepConfigPanel({ step, onChange, onSave, onCancel, onDelete, saving }) {

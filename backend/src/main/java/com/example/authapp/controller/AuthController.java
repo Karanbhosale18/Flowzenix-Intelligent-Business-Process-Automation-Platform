@@ -57,38 +57,9 @@ public class AuthController {
     private JwtUtils jwtUtils;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (Boolean.TRUE.equals(userRepository.existsByUsername(signUpRequest.getUsername().trim()))) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken."));
-        }
-
-        if (Boolean.TRUE.equals(userRepository.existsByEmail(signUpRequest.getEmail().trim()))) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use."));
-        }
-
-        // Create the user, hashing the password with BCrypt before it ever touches the DB.
-        User user = new User(
-                signUpRequest.getUsername().trim(),
-                signUpRequest.getEmail().trim(),
-                encoder.encode(signUpRequest.getPassword())
-        );
-
-        // Security requirement: public registration strictly defaults to ROLE_EMPLOYEE.
-        // Privileged roles (ADMIN, MANAGER, FINANCE, etc.) and organizational assignments
-        // are restricted to authorized administrative operations.
-        Set<ERole> roles = new HashSet<>();
-        roles.add(ERole.ROLE_EMPLOYEE);
-        user.setRoles(roles);
-
-        if (signUpRequest.getDepartment() != null && !signUpRequest.getDepartment().isBlank()) {
-            if (ALLOWED_DEPARTMENTS.contains(signUpRequest.getDepartment().trim())) {
-                user.setDepartment(signUpRequest.getDepartment().trim());
-            }
-        }
-
-        userRepository.save(user);
-
-        return ResponseEntity.ok(new MessageResponse("User registered successfully."));
+    public ResponseEntity<?> registerUser(@Valid @RequestBody(required = false) SignupRequest signUpRequest) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                .body(new MessageResponse("Public registration is disabled. User accounts are created by administrators."));
     }
 
     @PostMapping("/login")

@@ -5,19 +5,17 @@ import AuthService from '../../services/AuthService.js'
 import './UserManagement.css'
 
 const DEPARTMENTS = [
-  'Engineering',
+  'Research & Development',
   'Finance & Accounting',
-  'Human Resources',
-  'Operations',
   'Marketing',
-  'Sales',
-  'Legal'
+  'Sales & Business Development',
+  'Technical Support / Help Desk',
+  'Admin'
 ]
 
 const ALL_ROLES = [
   { id: 'ROLE_EMPLOYEE', label: 'Employee' },
   { id: 'ROLE_MANAGER', label: 'Manager' },
-  { id: 'ROLE_FINANCE_MANAGER', label: 'Finance Manager' },
   { id: 'ROLE_ADMIN', label: 'Administrator' }
 ]
 
@@ -52,7 +50,7 @@ export default function UserManagement() {
     username: '',
     email: '',
     password: '',
-    department: 'Engineering',
+    department: 'Research & Development',
     managerId: '',
     roles: ['ROLE_EMPLOYEE']
   })
@@ -106,7 +104,7 @@ export default function UserManagement() {
       username: '',
       email: '',
       password: '',
-      department: 'Engineering',
+      department: 'Research & Development',
       managerId: '',
       roles: ['ROLE_EMPLOYEE']
     })
@@ -188,19 +186,11 @@ export default function UserManagement() {
     }
   }
 
-  function toggleRole(roleId, isCreate = false) {
+  function selectSingleRole(roleId, isCreate = false) {
     if (isCreate) {
-      const current = createForm.roles
-      const next = current.includes(roleId)
-        ? current.filter(r => r !== roleId)
-        : [...current, roleId]
-      setCreateForm({ ...createForm, roles: next.length > 0 ? next : ['ROLE_EMPLOYEE'] })
+      setCreateForm({ ...createForm, roles: [roleId] })
     } else {
-      const current = editForm.roles
-      const next = current.includes(roleId)
-        ? current.filter(r => r !== roleId)
-        : [...current, roleId]
-      setEditForm({ ...editForm, roles: next.length > 0 ? next : ['ROLE_EMPLOYEE'] })
+      setEditForm({ ...editForm, roles: [roleId] })
     }
   }
 
@@ -289,6 +279,19 @@ export default function UserManagement() {
             </select>
           </div>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, fontSize: 13, color: 'var(--text-muted)' }}>
+        <span>Showing {users.length} {users.length === 1 ? 'user account' : 'user accounts'}</span>
+        {(search || roleFilter || deptFilter || statusFilter) && (
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => { setSearch(''); setRoleFilter(''); setDeptFilter(''); setStatusFilter('') }}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* User Table */}
@@ -451,13 +454,16 @@ export default function UserManagement() {
 
                 <div className="form-group">
                   <label className="field-label">Assigned Roles</label>
+                  <span className="field-hint" style={{ fontSize: 11, marginBottom: 8, display: 'block' }}>
+                    Select the single primary role for this user account.
+                  </span>
                   <div className="checkbox-group">
                     {ALL_ROLES.map(r => (
                       <label key={r.id} className="checkbox-label">
                         <input
                           type="checkbox"
                           checked={createForm.roles.includes(r.id)}
-                          onChange={() => toggleRole(r.id, true)}
+                          onChange={() => selectSingleRole(r.id, true)}
                         />
                         {r.label}
                       </label>
@@ -541,13 +547,16 @@ export default function UserManagement() {
 
                 <div className="form-group">
                   <label className="field-label">Assigned Roles</label>
+                  <span className="field-hint" style={{ fontSize: 11, marginBottom: 8, display: 'block' }}>
+                    Select the single primary role for this user account.
+                  </span>
                   <div className="checkbox-group">
                     {ALL_ROLES.map(r => (
                       <label key={r.id} className="checkbox-label">
                         <input
                           type="checkbox"
                           checked={editForm.roles.includes(r.id)}
-                          onChange={() => toggleRole(r.id, false)}
+                          onChange={() => selectSingleRole(r.id, false)}
                         />
                         {r.label}
                       </label>

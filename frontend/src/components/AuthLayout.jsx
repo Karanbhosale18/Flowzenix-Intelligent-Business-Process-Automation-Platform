@@ -1,7 +1,7 @@
 import './AuthLayout.css'
 
 /**
- * Shared split-screen shell for the Login and Signup pages.
+ * Shared split-screen shell for the authentication pages.
  * Left: brand panel with the "approval chain" signature graphic.
  * Right: the actual form, passed in as children.
  */
@@ -11,7 +11,7 @@ export default function AuthLayout({ eyebrow, title, subtitle, children }) {
       <aside className="brand-panel">
         <div className="brand-mark">
           <span className="brand-dot" />
-          FlowGate
+          Flowzenix
         </div>
 
         <div className="brand-copy">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/AuthLayout.jsx'
 import AuthService from '../services/AuthService.js'
 import '../components/AuthForm.css'
@@ -50,7 +50,7 @@ export default function Login() {
   return (
     <AuthLayout
       eyebrow="Welcome back"
-      title="Sign in to FlowGate"
+      title="Sign in to Flowzenix"
       subtitle="Access your approval queue and pending requests."
     >
       {serverError && (
@@ -110,8 +110,8 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="form-switch">
-        Don't have an account? <Link to="/signup">Create one</Link>
+      <p className="form-switch" style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
+        Flowzenix accounts are provisioned by system administrators.
       </p>
     </AuthLayout>
   )

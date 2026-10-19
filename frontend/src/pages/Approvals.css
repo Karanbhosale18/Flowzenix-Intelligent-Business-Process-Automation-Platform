@@ -1,7 +1,15 @@
+.approvals-header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .approvals-tabs {
   display: flex;
   gap: 6px;
-  margin-bottom: 16px;
 }
 
 .approvals-tab {

@@ -179,13 +179,19 @@ public class AiRequestAssistantService {
                 missingFields.add("amount");
             }
 
-            // Department detection
-            List<String> depts = List.of("Engineering", "Finance & Accounting", "Finance", "HR", "Human Resources", "Operations", "Marketing", "Sales", "Legal");
-            for (String d : depts) {
-                if (lower.contains(d.toLowerCase(Locale.ROOT))) {
-                    extractedData.put("department", d);
-                    break;
-                }
+            // Department detection for canonical Flowzenix departments
+            if (lower.contains("research & development") || lower.contains("research") || lower.contains("r&d") || lower.contains("engineering")) {
+                extractedData.put("department", "Research & Development");
+            } else if (lower.contains("finance & accounting") || lower.contains("finance") || lower.contains("accounting")) {
+                extractedData.put("department", "Finance & Accounting");
+            } else if (lower.contains("sales & business development") || lower.contains("business development") || lower.contains("sales")) {
+                extractedData.put("department", "Sales & Business Development");
+            } else if (lower.contains("technical support") || lower.contains("help desk") || lower.contains("support")) {
+                extractedData.put("department", "Technical Support / Help Desk");
+            } else if (lower.contains("marketing")) {
+                extractedData.put("department", "Marketing");
+            } else if (lower.contains("admin")) {
+                extractedData.put("department", "Admin");
             }
 
             if (lower.contains("software")) {

@@ -36,7 +36,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * strategy would replace this with something smarter later.
      */
     @Query("select u from User u join u.roles r where r = :role and u.enabled = true order by u.id asc")
-    Optional<User> findFirstByRole(@Param("role") ERole role);
+    java.util.List<User> findByRoleOrderByIdAsc(@Param("role") ERole role);
+
+    default Optional<User> findFirstByRole(ERole role) {
+        java.util.List<User> users = findByRoleOrderByIdAsc(role);
+        return users.isEmpty() ? Optional.empty() : Optional.of(users.get(0));
+    }
 
     @Query("select u from User u where u.manager.id = :managerId order by u.username asc")
     java.util.List<User> findByManagerId(@Param("managerId") Long managerId);
