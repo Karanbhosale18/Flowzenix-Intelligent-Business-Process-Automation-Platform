@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1d1c06e5-725b-4b1d-b1cf-efe8a1b62394" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/src/main/resources/db/migration/V5__fix_user_roles_column_name.sql" afterDir="false" />
-    </list>
+    <list default="true" id="1d1c06e5-725b-4b1d-b1cf-efe8a1b62394" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -69,6 +67,11 @@
     "ts.external.directory.path": "D:\\IntelliJ IDEA 2026.1.2\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\bhosa\Desktop\Flowezenix\backend\src\main\resources\db\migration" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="FlowZenix" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="com.example.authapp.FlowZenix" />
