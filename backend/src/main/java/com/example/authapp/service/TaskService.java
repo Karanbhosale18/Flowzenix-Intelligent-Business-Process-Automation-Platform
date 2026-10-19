@@ -92,6 +92,12 @@ public class TaskService {
             throw new AccessDeniedException("This task is not assigned to you.");
         }
 
+        // Enforce separation of duties: users cannot approve their own requests
+        if (decision == ApprovalDecision.APPROVED
+                && task.getWorkflowInstance().getCreatedBy().getId().equals(actor.getId())) {
+            throw new AccessDeniedException("Users cannot approve their own requests.");
+        }
+
         workflowEngine.decide(task, decision, actor, comment);
     }
 }

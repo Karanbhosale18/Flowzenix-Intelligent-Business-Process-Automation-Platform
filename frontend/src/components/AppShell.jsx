@@ -35,7 +35,7 @@ export default function AppShell({ children, title, actions }) {
       <aside className="shell-sidebar">
         <div className="shell-brand">
           <span className="shell-brand-dot" />
-          FlowGate
+          Flowzenix
         </div>
 
         <nav className="shell-nav">

@@ -16,6 +16,11 @@ const RequestService = {
     const response = await api.get(`/requests/${id}`)
     return response.data
   },
+
+  async cancel(id) {
+    const response = await api.post(`/requests/${id}/cancel`)
+    return response.data
+  },
 }
 
 export default RequestService

@@ -26,7 +26,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByFinanceManagerReferenceId(Long financeManagerReferenceId);
 
-    Optional<User> findByfinanceManagerId(Long financeManagerReferenceId);
+    Optional<User> findByFinanceManagerReferenceId(Long financeManagerReferenceId);
 
     /**
      * Used by the workflow engine to resolve "the Finance team" / "the HR

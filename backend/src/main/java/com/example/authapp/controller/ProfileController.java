@@ -1,6 +1,7 @@
 package com.example.authapp.controller;
 
 import com.example.authapp.dto.UserProfileDTO;
+import com.example.authapp.entity.ERole;
 import com.example.authapp.entity.User;
 import com.example.authapp.payload.request.UpdateProfileRequest;
 import com.example.authapp.repository.UserRepository;
@@ -35,26 +36,43 @@ public class ProfileController {
 
     @PutMapping
     public ResponseEntity<UserProfileDTO> update(@Valid @RequestBody UpdateProfileRequest update,
-                                                   @AuthenticationPrincipal UserDetailsImpl principal) {
+                                                 @AuthenticationPrincipal UserDetailsImpl principal) {
         User user = currentUser(principal);
-        if (update.getDepartment() != null && !ALLOWED_DEPARTMENTS.contains(update.getDepartment())) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (update.getManagerId() != null) {
-            User manager = userRepository.findByManagerReferenceId(update.getManagerId()).orElse(null);
-            boolean validManager = manager != null
-                    && !manager.getId().equals(user.getId())
-                    && manager.getRoles().stream().anyMatch(role -> role.name().endsWith("_MANAGER"))
-                    && (update.getDepartment() != null ? update.getDepartment() : user.getDepartment()).equals(manager.getDepartment());
-            if (!validManager) {
-                return ResponseEntity.badRequest().build();
+        boolean isAdmin = user.getRoles().contains(ERole.ROLE_ADMIN);
+
+        // Security requirement: department management and manager assignments are restricted
+        // to authorized administrative operations.
+        if (!isAdmin && (update.getDepartment() != null || update.getManagerId() != null)) {
+            boolean deptChanged = update.getDepartment() != null && !update.getDepartment().equals(user.getDepartment());
+            boolean managerChanged = update.getManagerId() != null && !update.getManagerId().equals(user.getManagerId());
+            if (deptChanged || managerChanged) {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN).build();
             }
-            user.setManagerId(manager.getId());
-        } else {
-            user.setManagerId(null);
         }
-        if (update.getDepartment() != null) user.setDepartment(update.getDepartment());
-        if (update.getPassword() != null && !update.getPassword().isBlank()) user.setPassword(encoder.encode(update.getPassword()));
+
+        if (isAdmin) {
+            if (update.getDepartment() != null) {
+                if (!ALLOWED_DEPARTMENTS.contains(update.getDepartment())) {
+                    return ResponseEntity.badRequest().build();
+                }
+                user.setDepartment(update.getDepartment());
+            }
+            if (update.getManagerId() != null) {
+                User manager = userRepository.findByManagerReferenceId(update.getManagerId()).orElse(null);
+                boolean validManager = manager != null
+                        && !manager.getId().equals(user.getId())
+                        && manager.getRoles().stream().anyMatch(role -> role.name().endsWith("_MANAGER"))
+                        && (user.getDepartment() == null || user.getDepartment().equals(manager.getDepartment()));
+                if (!validManager) {
+                    return ResponseEntity.badRequest().build();
+                }
+                user.setManagerId(manager.getId());
+            }
+        }
+
+        if (update.getPassword() != null && !update.getPassword().isBlank()) {
+            user.setPassword(encoder.encode(update.getPassword()));
+        }
         return ResponseEntity.ok(toDto(userRepository.save(user)));
     }
 

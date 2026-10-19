@@ -8,27 +8,49 @@ import com.example.authapp.repository.WorkflowDefinitionRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import com.example.authapp.entity.User;
+import com.example.authapp.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Set;
+
 /**
- * Seeds the two workflow definitions the demo scenario needs
- * (LEAVE_REQUEST, BUDGET_REQUEST) on startup, idempotently. This is
- * intentionally the ONLY place that knows the demo defaults — WorkflowEngine
- * has no idea LEAVE_REQUEST or BUDGET_REQUEST exist. The admin workflow
- * builder is the normal path for new definitions; this idempotent bootstrap
- * remains only so existing demo installations start with their original data.
+ * Seeds initial workflow definitions and default bootstrap admin account
+ * idempotently on startup.
  */
 @Component
 public class WorkflowSeeder implements CommandLineRunner {
 
     private final WorkflowDefinitionRepository workflowDefinitionRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public WorkflowSeeder(WorkflowDefinitionRepository workflowDefinitionRepository) {
+    public WorkflowSeeder(WorkflowDefinitionRepository workflowDefinitionRepository,
+                          UserRepository userRepository,
+                          PasswordEncoder passwordEncoder) {
         this.workflowDefinitionRepository = workflowDefinitionRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
+        seedBootstrapAdmin();
         seedLeaveRequest();
         seedBudgetRequest();
+    }
+
+    private void seedBootstrapAdmin() {
+        if (userRepository.findFirstByRole(ERole.ROLE_ADMIN).isPresent()) return;
+
+        User admin = new User(
+                "admin",
+                "admin@flowzenix.com",
+                passwordEncoder.encode("AdminPassword123!")
+        );
+        admin.setRoles(Set.of(ERole.ROLE_ADMIN));
+        admin.setDepartment("Admin");
+        admin.setAdminReferenceId(1001L);
+        userRepository.save(admin);
     }
 
     private void seedLeaveRequest() {

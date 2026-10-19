@@ -25,10 +25,10 @@ export default function App() {
         <Route path="/requests/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
         <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/admin/workflows" element={<ProtectedRoute><Workflows /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/workflows/new" element={<ProtectedRoute><CreateWorkflow /></ProtectedRoute>} />
-        <Route path="/admin/workflows/:id" element={<ProtectedRoute><CreateWorkflow /></ProtectedRoute>} />
+        <Route path="/admin/workflows" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><Workflows /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/workflows/new" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><CreateWorkflow /></ProtectedRoute>} />
+        <Route path="/admin/workflows/:id" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><CreateWorkflow /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

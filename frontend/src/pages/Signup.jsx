@@ -5,20 +5,18 @@ import AuthService from '../services/AuthService.js'
 import '../components/AuthForm.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const DEPARTMENT_ROLES = {
-  'Research & Development': ['RND_MANAGER', 'RND_ENGINEER', 'RND_ANALYST'],
-  'Finance & Accounting': ['FINANCE_MANAGER', 'ACCOUNTANT', 'FINANCE_ANALYST'],
-  Marketing: ['MARKETING_MANAGER', 'MARKETING_SPECIALIST', 'MARKETING_ANALYST'],
-  'Sales & Business Development': ['SALES_MANAGER', 'SALES_EXECUTIVE', 'BUSINESS_DEVELOPMENT_MANAGER', 'ACCOUNT_MANAGER'],
-  'Technical Support / Help Desk': ['SUPPORT_MANAGER', 'SUPPORT_ENGINEER', 'HELP_DESK_AGENT', 'SYSTEM_ADMIN'],
-  Admin: ['ADMIN'],
-}
+const DEPARTMENTS = [
+  'Research & Development',
+  'Finance & Accounting',
+  'Marketing',
+  'Sales & Business Development',
+  'Technical Support / Help Desk',
+]
 
 export default function Signup() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
-    username: '', email: '', password: '', confirmPassword: '',
-    role: '', department: '', managerId: '', adminId: '', adminReferenceId: '', managerReferenceId: '',
+    username: '', email: '', password: '', confirmPassword: '', department: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
@@ -39,28 +37,13 @@ export default function Signup() {
 
     if (form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match.'
 
-    if (!form.role) next.role = 'Select a role.'
-    if (!form.department) next.department = 'Select a department.'
-    const isAdmin = form.role === 'ADMIN'
-    const isManager = form.role.endsWith('_MANAGER')
-    if (!isAdmin && !isManager && !form.managerId.trim()) next.managerId = 'Manager user ID is required.'
-    if (isManager && !form.adminId.trim()) next.adminId = 'Admin user ID is required.'
-    if (isManager && !form.managerReferenceId.trim()) next.managerReferenceId = 'Choose your Manager ID.'
-    if (isAdmin && !form.adminReferenceId.trim()) next.adminReferenceId = 'Choose your Admin ID.'
-    if (form.managerId.trim() && !/^[1-9]\d*$/.test(form.managerId.trim()))
-      next.managerId = 'Enter a valid manager user ID (a positive number).'
-    if (isManager && form.managerReferenceId.trim() && !/^[1-9]\d*$/.test(form.managerReferenceId.trim()))
-      next.managerReferenceId = 'Enter a valid Manager ID (a positive number).'
-    if (isAdmin && form.adminReferenceId.trim() && !/^[1-9]\d*$/.test(form.adminReferenceId.trim()))
-      next.adminReferenceId = 'Enter a valid Admin ID (a positive number).'
-
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
   function handleChange(e) {
     const { name, value } = e.target
-    setForm((f) => ({ ...f, [name]: value, ...(name === 'department' ? { role: '' } : {}) }))
+    setForm((f) => ({ ...f, [name]: value }))
     if (errors[name]) setErrors((er) => ({ ...er, [name]: undefined }))
   }
 
@@ -75,12 +58,7 @@ export default function Signup() {
         username: form.username.trim(),
         email: form.email.trim(),
         password: form.password,
-        role: form.role,
         department: form.department,
-        managerId: form.managerId,
-        adminId: form.adminId,
-        adminReferenceId: form.adminReferenceId,
-        managerReferenceId: form.managerReferenceId,
       })
       setSuccess(true)
       setTimeout(() => navigate('/login'), 1200)
@@ -187,7 +165,7 @@ export default function Signup() {
 
         <div className="field">
           <label className="field-label" htmlFor="department">
-            Department
+            Department <span className="field-optional">(optional)</span>
           </label>
           <select
             id="department"
@@ -196,67 +174,16 @@ export default function Signup() {
             value={form.department}
             onChange={handleChange}
           >
-            <option value="">Select a department</option>
-            <option value="Research & Development">Research &amp; Development</option>
-            <option value="Finance & Accounting">Finance &amp; Accounting</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Sales & Business Development">Sales &amp; Business Development</option>
-            <option value="Technical Support / Help Desk">Technical Support / Help Desk</option>
-            <option value="Admin">Admin</option>
+            <option value="">Select a department…</option>
+            {DEPARTMENTS.map((dept) => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
           </select>
-          {errors.department && <p className="field-error">{errors.department}</p>}
         </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor="role">Role</label>
-          <select id="role" name="role" className="field-input" value={form.role} onChange={handleChange} disabled={!form.department}>
-            <option value="">{form.department ? 'Select a role' : 'Select a department first'}</option>
-            {(DEPARTMENT_ROLES[form.department] || []).map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}
-          </select>
-          {errors.role && <p className="field-error">{errors.role}</p>}
-        </div>
-
-        {form.role && form.role !== 'ADMIN' && !form.role.endsWith('_MANAGER') && <div className="field">
-          <label className="field-label" htmlFor="managerId">
-            Manager ID
-          </label>
-          <input
-            id="managerId"
-            name="managerId"
-            type="number"
-            min="1"
-            className="field-input"
-            placeholder="e.g. 1"
-            value={form.managerId}
-            onChange={handleChange}
-            aria-invalid={!!errors.managerId}
-          />
-          {errors.managerId ? (
-            <p className="field-error">{errors.managerId}</p>
-          ) : (
-            <p className="field-hint">
-              Enter the Manager ID created by a manager in your selected department.
-            </p>
-          )}
-        </div>}
-
-        {form.role.endsWith('_MANAGER') && <div className="field">
-          <label className="field-label" htmlFor="adminId">Admin ID</label>
-          <input id="adminId" name="adminId" type="number" min="1" className="field-input" placeholder="e.g. 1" value={form.adminId} onChange={handleChange} aria-invalid={!!errors.adminId} />
-          {errors.adminId ? <p className="field-error">{errors.adminId}</p> : <p className="field-hint">All of your requests will be routed to this Admin.</p>}
-        </div>}
-
-        {form.role.endsWith('_MANAGER') && <div className="field">
-          <label className="field-label" htmlFor="managerReferenceId">Choose your Manager ID</label>
-          <input id="managerReferenceId" name="managerReferenceId" type="number" min="1" className="field-input" placeholder="e.g. 2001" value={form.managerReferenceId} onChange={handleChange} aria-invalid={!!errors.managerReferenceId} />
-          {errors.managerReferenceId ? <p className="field-error">{errors.managerReferenceId}</p> : <p className="field-hint">Staff in your department use this ID to connect to you.</p>}
-        </div>}
-
-        {form.role === 'ADMIN' && <div className="field">
-          <label className="field-label" htmlFor="adminReferenceId">Choose your Admin ID</label>
-          <input id="adminReferenceId" name="adminReferenceId" type="number" min="1" className="field-input" placeholder="e.g. 1001" value={form.adminReferenceId} onChange={handleChange} aria-invalid={!!errors.adminReferenceId} />
-          {errors.adminReferenceId ? <p className="field-error">{errors.adminReferenceId}</p> : <p className="field-hint">Managers use this ID when linking their account to you.</p>}
-        </div>}
+        <p className="field-hint" style={{ marginBottom: 16 }}>
+          New accounts are registered as Employee. Privileged roles and manager assignments are configured by administrators.
+        </p>
 
         <button type="submit" className="submit-btn" disabled={loading}>
           {loading ? 'Creating account…' : 'Create account'}

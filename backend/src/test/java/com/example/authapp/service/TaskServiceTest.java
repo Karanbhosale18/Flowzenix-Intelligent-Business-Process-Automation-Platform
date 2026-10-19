@@ -106,6 +106,43 @@ class TaskServiceTest {
     }
 
     @Test
+    @DisplayName("a user cannot approve their own request (separation of duties)")
+    void userCannotApproveTheirOwnRequest() {
+        User creator = employee(1L, "karan");
+        WorkflowDefinition def = leaveDefinition();
+        WorkflowInstance instance = new WorkflowInstance(def, creator);
+        instance.setId(100L);
+        WorkflowTask task = new WorkflowTask(instance, def.getOrderedSteps().get(0), creator);
+        task.setId(10L);
+        when(workflowTaskRepository.findById(10L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> service.approve(10L, creator, "self approval"))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Users cannot approve their own requests.");
+
+        verifyNoInteractions(workflowEngine);
+    }
+
+    @Test
+    @DisplayName("an admin cannot approve their own request (separation of duties)")
+    void adminCannotApproveTheirOwnRequest() {
+        User adminCreator = withRole(1L, "root", ERole.ROLE_ADMIN);
+        User assigned = manager(2L, "meena");
+        WorkflowDefinition def = leaveDefinition();
+        WorkflowInstance instance = new WorkflowInstance(def, adminCreator);
+        instance.setId(100L);
+        WorkflowTask task = new WorkflowTask(instance, def.getOrderedSteps().get(0), assigned);
+        task.setId(10L);
+        when(workflowTaskRepository.findById(10L)).thenReturn(Optional.of(task));
+
+        assertThatThrownBy(() -> service.approve(10L, adminCreator, "admin self approval"))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Users cannot approve their own requests.");
+
+        verifyNoInteractions(workflowEngine);
+    }
+
+    @Test
     @DisplayName("acting on a task that does not exist surfaces a clear error")
     void missingTaskThrows() {
         when(workflowTaskRepository.findById(404L)).thenReturn(Optional.empty());

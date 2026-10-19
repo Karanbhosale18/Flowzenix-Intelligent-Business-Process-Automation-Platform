@@ -39,7 +39,7 @@ public class ManagerFinanceController {
             @Valid @RequestBody FinanceManagerAssignmentRequest request,
             @AuthenticationPrincipal UserDetailsImpl principal) {
         User manager = currentManager(principal);
-        User financeManager = userRepository.findByfinanceManagerId(request.getFinanceManagerId())
+        User financeManager = userRepository.findByFinanceManagerReferenceId(request.getFinanceManagerId())
                 // Finance Managers created before Finance Manager IDs were introduced
                 // used Manager ID. Keep those accounts selectable during the transition.
                 .or(() -> userRepository.findByManagerReferenceId(request.getFinanceManagerId()))

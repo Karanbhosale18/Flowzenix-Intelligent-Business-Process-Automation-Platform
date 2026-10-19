@@ -12,6 +12,7 @@ export default function RequestDetail() {
   const [error, setError] = useState('')
   const [comment, setComment] = useState('')
   const [acting, setActing] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [actionError, setActionError] = useState('')
 
   function load() {
@@ -40,6 +41,20 @@ export default function RequestDetail() {
       setActionError(err.response?.data?.message || 'Could not record your decision.')
     } finally {
       setActing(false)
+    }
+  }
+
+  async function handleCancel() {
+    if (!window.confirm('Are you sure you want to cancel this request?')) return
+    setCancelling(true)
+    setActionError('')
+    try {
+      await RequestService.cancel(id)
+      load()
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Could not cancel this request.')
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -86,7 +101,21 @@ export default function RequestDetail() {
               </dl>
             )}
 
-            <p className="request-detail-submitted">Submitted {formatDate(detail.createdAt)}</p>
+            {actionError && <div className="banner banner--error" style={{ marginBottom: 12 }}>{actionError}</div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+              <p className="request-detail-submitted">Submitted {formatDate(detail.createdAt)}</p>
+              {!['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'].includes(detail.status) && (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  style={{ fontSize: 13, padding: '6px 12px' }}
+                  disabled={cancelling}
+                  onClick={handleCancel}
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel request'}
+                </button>
+              )}
+            </div>
           </div>
 
           {detail.myPendingTaskId && (

@@ -58,87 +58,37 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (Boolean.TRUE.equals(userRepository.existsByUsername(signUpRequest.getUsername()))) {
+        if (Boolean.TRUE.equals(userRepository.existsByUsername(signUpRequest.getUsername().trim()))) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken."));
         }
 
-        if (Boolean.TRUE.equals(userRepository.existsByEmail(signUpRequest.getEmail()))) {
+        if (Boolean.TRUE.equals(userRepository.existsByEmail(signUpRequest.getEmail().trim()))) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use."));
-        }
-
-        if (!ALLOWED_DEPARTMENTS.contains(signUpRequest.getDepartment())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Select one of the available departments."));
-        }
-        if (signUpRequest.getRole() == null || signUpRequest.getRole().size() != 1) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Select exactly one of the available roles."));
-        }
-        String selectedRole = signUpRequest.getRole().iterator().next().toUpperCase();
-        if (!DEPARTMENT_ROLES.get(signUpRequest.getDepartment()).contains(selectedRole)) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Select a role available for the selected department."));
-        }
-        boolean isAdmin = "ADMIN".equals(selectedRole);
-        boolean isManager = selectedRole.endsWith("_MANAGER");
-        boolean isFinanceManager = "FINANCE_MANAGER".equals(selectedRole);
-        if (isAdmin && (signUpRequest.getAdminReferenceId() == null || signUpRequest.getAdminReferenceId() < 1)) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Enter a valid Admin ID."));
-        }
-        if (isAdmin && userRepository.existsByAdminReferenceId(signUpRequest.getAdminReferenceId())) {
-            return ResponseEntity.badRequest().body(new MessageResponse(
-                    "Admin ID " + signUpRequest.getAdminReferenceId() + " already exists. Choose a different Admin ID."));
-        }
-        if (isManager && !isFinanceManager && (signUpRequest.getManagerReferenceId() == null || signUpRequest.getManagerReferenceId() < 1)) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Enter a valid Manager ID."));
-        }
-        if (isManager && !isFinanceManager && userRepository.existsByManagerReferenceId(signUpRequest.getManagerReferenceId())) {
-            return ResponseEntity.badRequest().body(new MessageResponse(
-                    "Manager ID " + signUpRequest.getManagerReferenceId() + " already exists. Choose a different Manager ID."));
-        }
-        if (isFinanceManager && (signUpRequest.getFinanceManagerReferenceId() == null || signUpRequest.getFinanceManagerReferenceId() < 1)) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Enter a valid Finance Manager ID."));
-        }
-        if (isFinanceManager && userRepository.existsByFinanceManagerReferenceId(signUpRequest.getFinanceManagerReferenceId())) {
-            return ResponseEntity.badRequest().body(new MessageResponse(
-                    "Finance Manager ID " + signUpRequest.getFinanceManagerReferenceId() + " already exists. Choose a different Finance Manager ID."));
-        }
-        if (!isAdmin && !isManager) {
-            User manager = signUpRequest.getManagerId() == null ? null : userRepository.findByManagerReferenceId(signUpRequest.getManagerId()).orElse(null);
-            boolean validManager = manager != null
-                    && manager.getRoles().stream().anyMatch(role -> role.name().endsWith("_MANAGER"))
-                    && signUpRequest.getDepartment().equals(manager.getDepartment());
-            if (!validManager) return ResponseEntity.badRequest().body(new MessageResponse("Invalid manager ID."));
-            signUpRequest.setManagerId(manager.getId());
-        }
-        if (isManager) {
-            User admin = signUpRequest.getAdminId() == null ? null : userRepository.findByAdminReferenceId(signUpRequest.getAdminId()).orElse(null);
-            if (admin == null || !admin.getRoles().contains(ERole.ROLE_ADMIN)) {
-                return ResponseEntity.badRequest().body(new MessageResponse("Invalid admin ID."));
-            }
-            signUpRequest.setAdminId(admin.getId());
         }
 
         // Create the user, hashing the password with BCrypt before it ever touches the DB.
         User user = new User(
-                signUpRequest.getUsername(),
-                signUpRequest.getEmail(),
+                signUpRequest.getUsername().trim(),
+                signUpRequest.getEmail().trim(),
                 encoder.encode(signUpRequest.getPassword())
         );
 
+        // Security requirement: public registration strictly defaults to ROLE_EMPLOYEE.
+        // Privileged roles (ADMIN, MANAGER, FINANCE, etc.) and organizational assignments
+        // are restricted to authorized administrative operations.
         Set<ERole> roles = new HashSet<>();
-
-        roles.add(isAdmin ? ERole.ROLE_ADMIN : ERole.valueOf("ROLE_" + selectedRole));
-        // Finance manager remains eligible for pre-existing Finance workflow steps.
-        if ("FINANCE_MANAGER".equals(selectedRole)) roles.add(ERole.ROLE_FINANCE);
-
+        roles.add(ERole.ROLE_EMPLOYEE);
         user.setRoles(roles);
-        user.setDepartment(signUpRequest.getDepartment());
-        user.setManagerId(signUpRequest.getManagerId());
-        user.setAdminId(signUpRequest.getAdminId());
-        if (isAdmin) user.setAdminReferenceId(signUpRequest.getAdminReferenceId());
-        if (isManager && !isFinanceManager) user.setManagerReferenceId(signUpRequest.getManagerReferenceId());
-        if (isFinanceManager) user.setFinanceManagerReferenceId(signUpRequest.getFinanceManagerReferenceId());
+
+        if (signUpRequest.getDepartment() != null && !signUpRequest.getDepartment().isBlank()) {
+            if (ALLOWED_DEPARTMENTS.contains(signUpRequest.getDepartment().trim())) {
+                user.setDepartment(signUpRequest.getDepartment().trim());
+            }
+        }
+
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        return ResponseEntity.ok(new MessageResponse("User registered successfully."));
     }
 
     @PostMapping("/login")

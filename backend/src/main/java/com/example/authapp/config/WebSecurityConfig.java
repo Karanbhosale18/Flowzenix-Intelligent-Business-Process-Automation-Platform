@@ -97,7 +97,6 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // public endpoints: signup / login
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 // OpenAPI JSON and the interactive API documentation must be
                 // available before a user has a JWT.
