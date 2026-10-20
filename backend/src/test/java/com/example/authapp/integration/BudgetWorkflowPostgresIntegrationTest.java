@@ -33,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *  - Request lifecycle: Submit -> Info Requested -> Info Provided -> Manager Approved -> Finance Approved -> Completed.
  *  - In-flight vs terminal request constraints.
  */
+@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "SPRING_DATASOURCE_URL", matches = ".+")
 @SpringBootTest
 @Transactional
 class BudgetWorkflowPostgresIntegrationTest {
@@ -223,3 +224,4 @@ class BudgetWorkflowPostgresIntegrationTest {
         assertThat(actions).anyMatch(a -> a.contains("Workflow completed"));
     }
 }
+

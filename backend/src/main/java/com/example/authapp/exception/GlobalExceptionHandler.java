@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -23,6 +24,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex) {
+        Map<String, Object> body = baseBody(HttpStatus.UNAUTHORIZED);
+        body.put("message", ex.getMessage() != null ? ex.getMessage() : "Authentication failed.");
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(WorkflowException.class)
     public ResponseEntity<Object> handleWorkflow(WorkflowException ex) {
         Map<String, Object> body = baseBody(HttpStatus.UNPROCESSABLE_ENTITY);
@@ -33,7 +41,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex) {
         Map<String, Object> body = baseBody(HttpStatus.FORBIDDEN);
-        body.put("message", ex.getMessage());
+        body.put("message", ex.getMessage() != null ? ex.getMessage() : "Access denied.");
         return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
 

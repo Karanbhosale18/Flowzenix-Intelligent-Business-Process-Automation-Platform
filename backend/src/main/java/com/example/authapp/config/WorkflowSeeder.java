@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import com.example.authapp.entity.User;
 import com.example.authapp.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -40,16 +43,33 @@ public class WorkflowSeeder implements CommandLineRunner {
     }
 
     private void seedBootstrapAdmin() {
+        Optional<User> existingAdmin = userRepository.findByUsername("admin");
+        if (existingAdmin.isPresent()) {
+            User admin = existingAdmin.get();
+            admin.setPassword(passwordEncoder.encode("Admin@123"));
+            if (admin.getRoles() == null || admin.getRoles().isEmpty()) {
+                admin.setRoles(Set.of(ERole.ROLE_ADMIN));
+            } else if (!admin.getRoles().contains(ERole.ROLE_ADMIN)) {
+                Set<ERole> roles = new HashSet<>(admin.getRoles());
+                roles.add(ERole.ROLE_ADMIN);
+                admin.setRoles(roles);
+            }
+            admin.setEnabled(true);
+            userRepository.save(admin);
+            return;
+        }
+
         if (userRepository.findFirstByRole(ERole.ROLE_ADMIN).isPresent()) return;
 
         User admin = new User(
                 "admin",
                 "admin@flowzenix.com",
-                passwordEncoder.encode("AdminPassword123!")
+                passwordEncoder.encode("Admin@123")
         );
         admin.setRoles(Set.of(ERole.ROLE_ADMIN));
         admin.setDepartment("Admin");
         admin.setAdminReferenceId(1001L);
+        admin.setEnabled(true);
         userRepository.save(admin);
     }
 

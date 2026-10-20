@@ -2,6 +2,6 @@ target/
 *.class
 .idea/
 *.iml
-.mvn/
-!.mvn/wrapper/maven-wrapper.jar
+.mvn/*
+!.mvn/wrapper
 .env

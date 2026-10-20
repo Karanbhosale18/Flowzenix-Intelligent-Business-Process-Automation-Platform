@@ -58,12 +58,12 @@ class AuthControllerTest {
     @DisplayName("authenticateUser successfully authenticates and returns JWT token with user details")
     void authenticateUserSuccess() {
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setUsername("testadmin");
-        loginRequest.setPassword("securePassword123");
+        loginRequest.setUsername("admin");
+        loginRequest.setPassword("Admin@123");
 
         UserDetailsImpl principal = new UserDetailsImpl(
                 1L,
-                "testadmin",
+                "admin",
                 "admin@flowzenix.com",
                 "hashed",
                 true,
@@ -81,7 +81,7 @@ class AuthControllerTest {
         assertThat(response.getBody()).isInstanceOf(JwtResponse.class);
         JwtResponse jwtResponse = (JwtResponse) response.getBody();
         assertThat(jwtResponse.getToken()).isEqualTo("mock-jwt-token-xyz");
-        assertThat(jwtResponse.getUsername()).isEqualTo("testadmin");
+        assertThat(jwtResponse.getUsername()).isEqualTo("admin");
         assertThat(jwtResponse.getEmail()).isEqualTo("admin@flowzenix.com");
         assertThat(jwtResponse.getRoles()).containsExactly("ROLE_ADMIN");
     }

@@ -43,8 +43,7 @@ public class WorkflowDefinitionController {
         return ResponseEntity.ok(workflowAdminService.create(dto));
     }
 
-    @PutMapping("/{id}")
-    @PatchMapping("/{id}")
+    @RequestMapping(value = "/{id}", method = {RequestMethod.PUT, RequestMethod.PATCH})
     public ResponseEntity<WorkflowDefinitionResponseDTO> update(
             @PathVariable Long id, @Valid @RequestBody WorkflowDefinitionRequestDTO dto) {
         return ResponseEntity.ok(workflowAdminService.update(id, dto));
@@ -52,7 +51,6 @@ public class WorkflowDefinitionController {
 
     /** Soft delete/deactivation preserves definitions referenced by old instances. */
     @DeleteMapping("/{id}")
-    @PatchMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivate(@PathVariable Long id) {
         workflowAdminService.deactivate(id);
         return ResponseEntity.noContent().build();
@@ -63,17 +61,15 @@ public class WorkflowDefinitionController {
             @PathVariable Long id, @RequestParam boolean active) {
         return ResponseEntity.ok(active
                 ? workflowAdminService.activate(id)
-                : (workflowAdminService.deactivateAndGet(id)));
+                : workflowAdminService.deactivateAndGet(id));
     }
 
-    @PostMapping("/{id}/activate")
-    @PutMapping("/{id}/activate")
+    @RequestMapping(value = "/{id}/activate", method = {RequestMethod.POST, RequestMethod.PUT})
     public ResponseEntity<WorkflowDefinitionResponseDTO> activate(@PathVariable Long id) {
         return ResponseEntity.ok(workflowAdminService.activate(id));
     }
 
-    @PostMapping("/{id}/deactivate")
-    @PutMapping("/{id}/deactivate")
+    @RequestMapping(value = "/{id}/deactivate", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH})
     public ResponseEntity<WorkflowDefinitionResponseDTO> deactivateAndGet(@PathVariable Long id) {
         return ResponseEntity.ok(workflowAdminService.deactivateAndGet(id));
     }

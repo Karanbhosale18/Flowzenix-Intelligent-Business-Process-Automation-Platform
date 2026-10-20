@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Date;
 
 @Component
@@ -18,14 +19,25 @@ public class JwtUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    @Value("${app.jwt.secret}")
+    @Value("${app.jwt.secret:flowzenix-default-jwt-secret-key-must-be-at-least-32-bytes-long-for-hs256}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expirationMs}")
+    @Value("${app.jwt.expirationMs:86400000}")
     private int jwtExpirationMs;
 
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        byte[] keyBytes;
+        if (jwtSecret != null && jwtSecret.getBytes(StandardCharsets.UTF_8).length >= 32) {
+            keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        } else {
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                keyBytes = md.digest((jwtSecret != null ? jwtSecret : "flowzenix-default-jwt-secret-key-hs256").getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                keyBytes = "flowzenix-default-jwt-secret-key-must-be-at-least-32-bytes-long-for-hs256".getBytes(StandardCharsets.UTF_8);
+            }
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateJwtToken(Authentication authentication) {
@@ -55,24 +67,24 @@ public class JwtUtils {
     }
 
     /**
-     * Validates signature, expiry and format. Any failure is logged and
-     * treated as "not authenticated" rather than propagated, so a bad
-     * token never breaks the filter chain for the whole app.
+     * Validates signature, expiry and format. Any failure is logged safely without
+     * leaking token contents, and returns false so the security filter chain rejects
+     * invalid credentials cleanly.
      */
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser().verifyWith(key()).build().parseSignedClaims(authToken);
             return true;
         } catch (SecurityException e) {
-            logger.error("Invalid JWT signature: {}", e.getMessage());
+            logger.warn("Invalid JWT signature");
         } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
+            logger.warn("Invalid JWT token format");
         } catch (ExpiredJwtException e) {
-            logger.error("JWT token is expired: {}", e.getMessage());
+            logger.warn("JWT token is expired");
         } catch (UnsupportedJwtException e) {
-            logger.error("JWT token is unsupported: {}", e.getMessage());
+            logger.warn("JWT token is unsupported");
         } catch (IllegalArgumentException e) {
-            logger.error("JWT claims string is empty: {}", e.getMessage());
+            logger.warn("JWT claims string is empty");
         }
         return false;
     }

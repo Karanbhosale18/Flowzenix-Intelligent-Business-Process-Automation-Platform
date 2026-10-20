@@ -1,5 +1,6 @@
 package com.example.authapp.config;
 
+import com.example.authapp.security.jwt.AuthAccessDeniedHandlerJwt;
 import com.example.authapp.security.jwt.AuthEntryPointJwt;
 import com.example.authapp.security.jwt.AuthTokenFilter;
 import com.example.authapp.security.services.UserDetailsServiceImpl;
@@ -7,12 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,22 +24,23 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * Central Spring Security configuration.
  *
  * Auth model:
- *  - Stateless (no HttpSession) — every request must carry its own JWT.
+ *  - Stateless (no HttpSession) — every request carries its own JWT.
  *  - Passwords hashed with BCrypt, never stored/compared in plaintext.
- *  - A custom AuthTokenFilter runs before Spring's UsernamePasswordAuthenticationFilter
- *    to authenticate the request from the "Authorization: Bearer <jwt>" header.
- *  - AuthEntryPointJwt returns a JSON 401 instead of redirecting to a login page,
- *    since this is a pure REST API consumed by the React frontend.
+ *  - Custom AuthTokenFilter runs before UsernamePasswordAuthenticationFilter.
+ *  - AuthEntryPointJwt returns JSON 401 for unauthenticated requests.
+ *  - AuthAccessDeniedHandlerJwt returns JSON 403 for unauthorized requests.
+ *  - Robust CORS configuration supporting trusted origins (Vercel & localhost).
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // enables @PreAuthorize("hasRole('ADMIN')") on controller methods
+@EnableMethodSecurity
 public class WebSecurityConfig {
 
     @Autowired
@@ -46,7 +49,10 @@ public class WebSecurityConfig {
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
 
-    @Value("${app.cors.allowedOrigins}")
+    @Autowired
+    private AuthAccessDeniedHandlerJwt accessDeniedHandler;
+
+    @Value("${app.cors.allowedOrigins:http://localhost:5173}")
     private String allowedOrigins;
 
     @Bean
@@ -54,8 +60,7 @@ public class WebSecurityConfig {
         return new AuthTokenFilter();
     }
 
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
+    private DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
@@ -75,10 +80,27 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(s -> s.replaceAll("/+$", ""))
+                .toList();
+
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -88,27 +110,25 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Stateless JWT API: CSRF tokens protect cookie-based sessions, not
-            // needed here since we don't use cookies for auth.
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(unauthorizedHandler)
+                .accessDeniedHandler(accessDeniedHandler)
+            )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // public endpoints: signup / login
+                // Allow CORS preflights
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Health probes
+                .requestMatchers("/health", "/api/health", "/actuator/health").permitAll()
+                // Public auth endpoints: signup / login
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
-                // OpenAPI JSON and the interactive API documentation must be
-                // available before a user has a JWT.
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/doc/**").permitAll()
-                // role-scoped example endpoints
+                // OpenAPI / Swagger documentation
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/doc/**", "/swagger-ui").permitAll()
+                // Role-restricted admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/finance/**").hasAnyRole("FINANCE", "ADMIN")
-                .requestMatchers("/api/hr/**").hasAnyRole("HR", "ADMIN")
-                // /api/requests/** and /api/tasks/** are open to any
-                // authenticated user — ownership/assignment is checked in
-                // the service layer, since who can act on a task depends
-                // on runtime assignment, not a fixed route rule.
+                // Other business endpoints require authentication (access rules checked in services/controllers)
                 .anyRequest().authenticated()
             );
 

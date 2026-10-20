@@ -30,6 +30,7 @@ export default function App() {
         <Route path="/admin" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/workflows/new" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><CreateWorkflow /></ProtectedRoute>} />
         <Route path="/admin/workflows/:id" element={<ProtectedRoute requiredRole="ROLE_ADMIN"><CreateWorkflow /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   )

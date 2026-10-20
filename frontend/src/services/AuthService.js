@@ -3,7 +3,7 @@ import api from './api'
 const AuthService = {
   async login(username, password) {
     const response = await api.post('/auth/login', { username, password })
-    if (response.data.token) {
+    if (response.data && response.data.token) {
       localStorage.setItem('token', response.data.token)
       localStorage.setItem(
         'user',
@@ -24,12 +24,17 @@ const AuthService = {
   },
 
   getCurrentUser() {
-    const raw = localStorage.getItem('user')
-    return raw ? JSON.parse(raw) : null
+    try {
+      const raw = localStorage.getItem('user')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
   },
 
   isAuthenticated() {
-    return !!localStorage.getItem('token')
+    const token = localStorage.getItem('token')
+    return !!token && token !== 'null' && token !== 'undefined' && token.trim() !== ''
   },
 }
 

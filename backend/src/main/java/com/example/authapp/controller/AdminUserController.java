@@ -67,9 +67,6 @@ public class AdminUserController {
         return ResponseEntity.ok(users);
     }
 
-    public ResponseEntity<List<AdminUserDTO>> listUsers() {
-        return listUsers(null, null, null, null);
-    }
 
     @GetMapping("/managers")
     @Transactional(readOnly = true)
