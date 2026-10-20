@@ -14,9 +14,13 @@ import java.util.Map;
 @SecurityRequirements
 public class HealthController {
 
-    @GetMapping({"/health", "/api/health"})
+    @GetMapping({"/", "/health", "/api/health"})
     @Operation(summary = "Health probe endpoint", description = "Lightweight unauthenticated probe for hosting platforms")
     public ResponseEntity<Map<String, String>> healthCheck() {
-        return ResponseEntity.ok(Map.of("status", "UP"));
+        return ResponseEntity.ok(Map.of(
+            "status", "UP",
+            "service", "FlowZenix API",
+            "documentation", "/swagger-ui/index.html"
+        ));
     }
 }

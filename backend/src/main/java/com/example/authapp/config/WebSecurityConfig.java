@@ -120,8 +120,8 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Allow CORS preflights
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // Health probes
-                .requestMatchers("/health", "/api/health", "/actuator/health").permitAll()
+                // Health & root probes
+                .requestMatchers("/", "/health", "/api/health", "/actuator/health").permitAll()
                 // Public auth endpoints: signup / login
                 .requestMatchers("/api/auth/**").permitAll()
                 // OpenAPI / Swagger documentation
