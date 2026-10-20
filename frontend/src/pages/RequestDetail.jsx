@@ -46,9 +46,12 @@ export default function RequestDetail() {
     RequestService.getById(id)
       .then(setDetail)
       .catch((err) => {
-        setError(err.response?.status === 403
-          ? "You don't have access to this request."
-          : 'Could not load this request.')
+        setError(
+          err.response?.data?.message ||
+          (err.response?.status === 403
+            ? "You don't have access to this request."
+            : 'Could not load this request.')
+        )
       })
   }
 

@@ -105,6 +105,7 @@ public class RequestService {
         return getRequestDetail(requestId, currentUser);
     }
 
+    @Transactional(readOnly = true)
     public List<RequestSummaryDTO> listRequestsFor(User user) {
         boolean isAdmin = user.getRoles().contains(ERole.ROLE_ADMIN);
         List<WorkflowInstance> instances = isAdmin
@@ -119,6 +120,7 @@ public class RequestService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public RequestDetailDTO getRequestDetail(Long requestId, User currentUser) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new WorkflowException("Request " + requestId + " not found."));

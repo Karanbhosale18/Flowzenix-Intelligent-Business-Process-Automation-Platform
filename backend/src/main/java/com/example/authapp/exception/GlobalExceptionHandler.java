@@ -57,8 +57,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneric(Exception ex) {
+        log.error("Unhandled exception caught in GlobalExceptionHandler", ex);
         Map<String, Object> body = baseBody(HttpStatus.INTERNAL_SERVER_ERROR);
         body.put("message", "An unexpected error occurred.");
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);

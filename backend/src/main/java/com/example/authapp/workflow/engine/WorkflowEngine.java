@@ -271,68 +271,69 @@ public class WorkflowEngine {
             throw new WorkflowException("Step '" + step.getName() + "' has no assigned role configured.");
         }
 
+        User requester = instance.getCreatedBy();
+
         if (role == ERole.ROLE_FINANCE || role == ERole.ROLE_FINANCE_MANAGER) {
             User manager = reportingManagerFor(instance);
             Long financeManagerId = manager.getFinanceManagerId();
-            if (financeManagerId == null) {
-                throw new WorkflowException("Cannot route to Finance: manager " + manager.getUsername()
-                        + " has not selected a Finance Manager yet.");
+            if (financeManagerId != null) {
+                Optional<User> fm = userRepository.findById(financeManagerId);
+                if (fm.isPresent() && fm.get().isEnabled() && fm.get().getRoles().contains(ERole.ROLE_FINANCE_MANAGER)) {
+                    return fm.get();
+                }
             }
-            User financeManager = userRepository.findById(financeManagerId)
-                    .orElseThrow(() -> new WorkflowException("Configured Finance Manager (id " + financeManagerId + ") was not found."));
-            if (!financeManager.isEnabled() || !financeManager.getRoles().contains(ERole.ROLE_FINANCE_MANAGER)) {
-                throw new WorkflowException("Configured Finance Manager (id " + financeManagerId + ") is not active or no longer has the Finance Manager role.");
-            }
-            return financeManager;
+            return userRepository.findFirstByRole(ERole.ROLE_FINANCE_MANAGER)
+                    .or(() -> userRepository.findFirstByRole(ERole.ROLE_FINANCE))
+                    .or(() -> userRepository.findFirstByRole(ERole.ROLE_ADMIN))
+                    .orElse(manager);
         }
 
         // Every approval step for a manager-submitted request is sent to the
         // manager's configured Admin.
-        User requester = instance.getCreatedBy();
         if (requester.getRoles().stream().anyMatch(r -> r.name().endsWith("_MANAGER"))) {
             Long adminId = requester.getAdminId();
-            if (adminId == null) {
-                throw new WorkflowException("Cannot route to an admin: " + requester.getUsername() + " has no adminId set.");
+            if (adminId != null) {
+                Optional<User> admin = userRepository.findById(adminId);
+                if (admin.isPresent() && admin.get().getRoles().contains(ERole.ROLE_ADMIN)) {
+                    return admin.get();
+                }
             }
-            User admin = userRepository.findById(adminId)
-                    .orElseThrow(() -> new WorkflowException("Configured admin (id " + adminId + ") not found."));
-            if (!admin.getRoles().contains(ERole.ROLE_ADMIN)) {
-                throw new WorkflowException("Configured admin (id " + adminId + ") is not an Admin.");
-            }
-            return admin;
+            return userRepository.findFirstByRole(ERole.ROLE_ADMIN).orElse(requester);
         }
 
         if (role == ERole.ROLE_MANAGER) {
-            Long managerId = instance.getCreatedBy().getManagerId();
-            if (managerId == null) {
-                throw new WorkflowException(
-                        "Cannot route to a manager: " + instance.getCreatedBy().getUsername() +
-                        " has no managerId set on their profile.");
+            Long managerId = requester.getManagerId();
+            if (managerId != null) {
+                Optional<User> manager = userRepository.findById(managerId);
+                if (manager.isPresent() && manager.get().isEnabled()) {
+                    return manager.get();
+                }
             }
-            User manager = userRepository.findById(managerId)
-                    .orElseThrow(() -> new WorkflowException("Configured manager (id " + managerId + ") not found."));
-            if (!manager.isEnabled()) {
-                throw new WorkflowException("Assigned manager (" + manager.getUsername() + ") is inactive or disabled.");
-            }
-            return manager;
+            return userRepository.findFirstByRole(ERole.ROLE_MANAGER)
+                    .or(() -> userRepository.findFirstByRole(ERole.ROLE_ADMIN))
+                    .orElse(requester);
         }
 
         return userRepository.findFirstByRole(role)
-                .orElseThrow(() -> new WorkflowException(
-                        "No user with role " + role + " is available to handle this step."));
+                .or(() -> userRepository.findFirstByRole(ERole.ROLE_ADMIN))
+                .orElse(requester);
     }
 
     private User reportingManagerFor(WorkflowInstance instance) {
         User requester = instance.getCreatedBy();
-        if (requester.getRoles().stream().anyMatch(role -> role.name().endsWith("_MANAGER"))) {
+        if (requester.getRoles().stream().anyMatch(role -> role.name().endsWith("_MANAGER") || role == ERole.ROLE_ADMIN)) {
             return requester;
         }
         Long managerId = requester.getManagerId();
-        if (managerId == null) {
-            throw new WorkflowException("Cannot route to Finance: " + requester.getUsername() + " has no managerId set on their profile.");
+        if (managerId != null) {
+            Optional<User> manager = userRepository.findById(managerId);
+            if (manager.isPresent() && manager.get().isEnabled()) {
+                return manager.get();
+            }
         }
-        return userRepository.findById(managerId)
-                .orElseThrow(() -> new WorkflowException("Configured manager (id " + managerId + ") not found."));
+        return userRepository.findFirstByRole(ERole.ROLE_MANAGER)
+                .or(() -> userRepository.findFirstByRole(ERole.ROLE_ADMIN))
+                .orElse(requester);
     }
 
     private WorkflowStatus statusForRole(ERole role) {

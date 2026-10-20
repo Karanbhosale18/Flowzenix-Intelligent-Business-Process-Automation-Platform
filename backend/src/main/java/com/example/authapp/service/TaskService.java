@@ -28,6 +28,7 @@ public class TaskService {
     @Autowired private WorkflowEngine workflowEngine;
 
     /** The pending-approvals inbox — unchanged behaviour for existing callers. */
+    @Transactional(readOnly = true)
     public List<TaskSummaryDTO> listMyTasks(User user) {
         return workflowTaskRepository.findByAssignedToAndStatusOrderByCreatedAtDesc(user, TaskStatus.PENDING).stream()
                 .map(this::toSummary)
@@ -40,6 +41,7 @@ public class TaskService {
      * already decided on, not just what's still pending. An empty/null
      * filter falls back to the pending inbox.
      */
+    @Transactional(readOnly = true)
     public List<TaskSummaryDTO> listMyTasks(User user, List<TaskStatus> statuses) {
         if (statuses == null || statuses.isEmpty()) {
             return listMyTasks(user);
