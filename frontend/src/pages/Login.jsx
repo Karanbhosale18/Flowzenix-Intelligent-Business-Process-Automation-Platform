@@ -40,7 +40,9 @@ export default function Login() {
         err.response?.data?.message ||
         (err.response?.status === 401
           ? 'Invalid username or password.'
-          : 'Something went wrong. Please try again.')
+          : err.message === 'Network Error' || !err.response
+            ? 'Unable to connect to the backend server. Please verify your connection or try again in a few moments.'
+            : 'Something went wrong. Please try again.')
       setServerError(message)
     } finally {
       setLoading(false)
