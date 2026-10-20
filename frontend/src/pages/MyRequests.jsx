@@ -15,7 +15,7 @@ export default function MyRequests() {
   useEffect(() => {
     RequestService.listMine()
       .then(setRequests)
-      .catch(() => setError('Could not load your requests.'))
+      .catch((err) => setError(err.response?.data?.message || 'Could not load your requests.'))
   }, [])
 
   function typeLabel(type) {
